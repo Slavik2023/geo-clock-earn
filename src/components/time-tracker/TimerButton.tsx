@@ -1,7 +1,7 @@
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { PlayIcon, StopIcon } from "lucide-react";
+import { Play, Square } from "lucide-react";
 
 interface TimerButtonProps {
   isActive: boolean;
@@ -35,12 +35,12 @@ export function TimerButton({
           <>
             {isActive ? (
               <>
-                <StopIcon size={32} className="mb-1" />
+                <Square size={32} className="mb-1" />
                 <span className="text-sm font-medium">STOP</span>
               </>
             ) : (
               <>
-                <PlayIcon size={32} className="mb-1" />
+                <Play size={32} className="mb-1" />
                 <span className="text-sm font-medium">START</span>
               </>
             )}
