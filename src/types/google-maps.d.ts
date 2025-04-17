@@ -182,12 +182,29 @@ declare namespace google {
       toString(): string;
     }
 
+    // Add the ControlPosition enum
+    enum ControlPosition {
+      TOP_LEFT,
+      TOP_CENTER,
+      TOP_RIGHT,
+      LEFT_TOP,
+      LEFT_CENTER,
+      LEFT_BOTTOM,
+      BOTTOM_LEFT,
+      BOTTOM_CENTER,
+      BOTTOM_RIGHT,
+      RIGHT_TOP,
+      RIGHT_CENTER,
+      RIGHT_BOTTOM
+    }
+
     namespace places {
       class SearchBox {
         constructor(inputField: HTMLInputElement, opts?: SearchBoxOptions);
         getBounds(): LatLngBounds;
         getPlaces(): PlaceResult[];
         setBounds(bounds: LatLngBounds | LatLngBoundsLiteral): void;
+        addListener(eventName: string, handler: Function): MapsEventListener;
       }
 
       interface SearchBoxOptions {

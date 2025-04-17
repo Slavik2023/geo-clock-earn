@@ -19,8 +19,16 @@ export async function createLocation(locationData: LocationFormValues): Promise<
     throw new Error("User not authenticated");
   }
   
+  // Ensure all required fields are present before inserting
   const data = {
-    ...locationData,
+    name: locationData.name,
+    address: locationData.address,
+    hourly_rate: locationData.hourly_rate,
+    overtime_rate: locationData.overtime_rate,
+    zip_code: locationData.zip_code,
+    radius: locationData.radius,
+    latitude: locationData.latitude,
+    longitude: locationData.longitude,
     user_id: user.id
   };
   

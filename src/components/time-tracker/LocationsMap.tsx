@@ -11,6 +11,7 @@ interface LocationsMapProps {
 
 export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [marker, setMarker] = useState<google.maps.Marker | null>(null);
   const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
@@ -126,35 +127,41 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
     });
 
     // Create search box
-    const input = document.getElementById("pac-input") as HTMLInputElement;
-    const searchBox = new google.maps.places.SearchBox(input);
-    
-    newMap.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
-    
-    // Listen for the event fired when the user selects a prediction and retrieve
-    // more details for that place.
-    searchBox.addListener("places_changed", () => {
-      const places = searchBox.getPlaces();
+    if (searchInputRef.current) {
+      const searchBox = new google.maps.places.SearchBox(searchInputRef.current);
       
-      if (!places || places.length === 0) return;
+      // Add the input to map controls, but do it outside of the React ref system
+      // This prevents the type mismatch with MVCObject
+      const input = document.getElementById("pac-input");
+      if (input) {
+        newMap.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
+      }
       
-      const place = places[0];
-      
-      if (!place.geometry || !place.geometry.location) return;
-      
-      // Update marker and map
-      newMarker.setPosition(place.geometry.location);
-      newMap.setCenter(place.geometry.location);
-      
-      const lat = place.geometry.location.lat();
-      const lng = place.geometry.location.lng();
-      
-      setSelectedLocation({
-        address: place.formatted_address || "",
-        latitude: lat,
-        longitude: lng,
+      // Listen for the event fired when the user selects a prediction and retrieve
+      // more details for that place.
+      searchBox.addListener("places_changed", () => {
+        const places = searchBox.getPlaces();
+        
+        if (!places || places.length === 0) return;
+        
+        const place = places[0];
+        
+        if (!place.geometry || !place.geometry.location) return;
+        
+        // Update marker and map
+        newMarker.setPosition(place.geometry.location);
+        newMap.setCenter(place.geometry.location);
+        
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        
+        setSelectedLocation({
+          address: place.formatted_address || "",
+          latitude: lat,
+          longitude: lng,
+        });
       });
-    });
+    }
   };
 
   const handleConfirmLocation = () => {
@@ -209,6 +216,7 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
         <>
           <input
             id="pac-input"
+            ref={searchInputRef}
             className="w-full max-w-xs mx-auto p-2 border rounded-md shadow-sm text-sm"
             type="text"
             placeholder="Search for a location"
