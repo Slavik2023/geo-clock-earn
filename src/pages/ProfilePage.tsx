@@ -84,8 +84,9 @@ export function ProfilePage() {
     setIsLoading(true);
     
     try {
+      // Ensure user_id is always provided and never optional
       const settingsData: UserSettingsUpdate = {
-        user_id: userId, // Ensure this is always set and non-optional
+        user_id: userId, // This is non-optional and must always be set
         name,
         hourly_rate: hourlyRate,
         overtime_rate: overtimeRate,
@@ -98,13 +99,13 @@ export function ProfilePage() {
       let result;
       
       if (userSettingsId) {
-        // Update existing settings
+        // Update existing settings - user_id is required in the type but not actually needed for the update
         result = await supabase
           .from('user_settings')
           .update(settingsData)
           .eq('id', userSettingsId);
       } else {
-        // Insert new settings
+        // Insert new settings - here user_id is both required in the type and needed for the insert
         result = await supabase
           .from('user_settings')
           .insert(settingsData);
