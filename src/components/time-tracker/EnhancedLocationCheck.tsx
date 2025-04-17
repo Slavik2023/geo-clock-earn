@@ -22,6 +22,7 @@ export interface LocationDetails {
   name?: string;
   address: string;
   hourly_rate: number;
+  overtime_rate?: number;
   latitude?: number | null;
   longitude?: number | null;
   zip_code?: string | null;

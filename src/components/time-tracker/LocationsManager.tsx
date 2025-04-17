@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -31,6 +30,7 @@ const locationSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   address: z.string().min(5, "Address must be at least 5 characters"),
   hourly_rate: z.coerce.number().min(1, "Hourly rate must be at least 1"),
+  overtime_rate: z.coerce.number().min(1, "Overtime rate must be at least 1").optional(),
   zip_code: z.string().optional(),
   radius: z.coerce.number().min(10, "Radius must be at least 10 meters").default(100),
 });
@@ -42,6 +42,7 @@ interface Location {
   name: string;
   address: string;
   hourly_rate: number;
+  overtime_rate?: number;
   zip_code: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -61,6 +62,7 @@ export function LocationsManager() {
       name: "",
       address: "",
       hourly_rate: 25,
+      overtime_rate: 37.5,
       zip_code: "",
       radius: 100,
     },
@@ -98,6 +100,7 @@ export function LocationsManager() {
           name: editingLocation.name,
           address: editingLocation.address,
           hourly_rate: editingLocation.hourly_rate,
+          overtime_rate: editingLocation.overtime_rate,
           zip_code: editingLocation.zip_code || "",
           radius: editingLocation.radius || 100,
         });
@@ -106,6 +109,7 @@ export function LocationsManager() {
           name: "",
           address: "",
           hourly_rate: 25,
+          overtime_rate: 37.5,
           zip_code: "",
           radius: 100,
         });
@@ -151,6 +155,7 @@ export function LocationsManager() {
           name: data.name,         // Required field from the form
           address: data.address,   // Required field from the form
           hourly_rate: data.hourly_rate, // Required field from the form
+          overtime_rate: data.overtime_rate,
           zip_code: data.zip_code || null,
           radius: data.radius || 100,
           latitude,
@@ -289,6 +294,22 @@ export function LocationsManager() {
                   
                   <FormField
                     control={form.control}
+                    name="overtime_rate"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel>Overtime Rate ($)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" min="1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="flex gap-4">
+                  <FormField
+                    control={form.control}
                     name="zip_code"
                     render={({ field }) => (
                       <FormItem className="flex-1">
@@ -300,26 +321,26 @@ export function LocationsManager() {
                       </FormItem>
                     )}
                   />
+                  
+                  <FormField
+                    control={form.control}
+                    name="radius"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel>Radius (meters)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="10" 
+                            step="10" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                
-                <FormField
-                  control={form.control}
-                  name="radius"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Radius (meters)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min="10" 
-                          step="10" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 
                 <DialogFooter>
                   <Button 
