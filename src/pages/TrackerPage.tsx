@@ -7,7 +7,7 @@ import { EarningsCard } from "@/components/time-tracker/EarningsCard";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin } from "lucide-react";
+import { MapPin, Clock as ClockIcon } from "lucide-react";
 
 export function TrackerPage() {
   const { toast } = useToast();
@@ -18,6 +18,7 @@ export function TrackerPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [hourlyRate, setHourlyRate] = useState(25);
   const [overtimeRate, setOvertimeRate] = useState(37.5);
+  const [overtimeThreshold, setOvertimeThreshold] = useState(8);
   const [locationDetails, setLocationDetails] = useState<LocationDetails | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
@@ -36,6 +37,8 @@ export function TrackerPage() {
         const parsedLocationDetails = JSON.parse(activeLocationDetails);
         setLocationDetails(parsedLocationDetails);
         setHourlyRate(parsedLocationDetails.hourly_rate || 25);
+        // Default overtime rate to 1.5x hourly rate if not specified
+        setOvertimeRate(parsedLocationDetails.overtime_rate || parsedLocationDetails.hourly_rate * 1.5 || 37.5);
       }
     }
   }, []);
@@ -46,6 +49,8 @@ export function TrackerPage() {
     if (verified && details) {
       setLocationDetails(details);
       setHourlyRate(details.hourly_rate || 25);
+      // Default overtime rate to 1.5x hourly rate
+      setOvertimeRate(details.overtime_rate || details.hourly_rate * 1.5);
     } else if (!verified) {
       toast({
         variant: "destructive",
@@ -122,7 +127,20 @@ export function TrackerPage() {
         if (startTime) {
           const durationMs = now.getTime() - startTime.getTime();
           const durationHours = durationMs / (1000 * 60 * 60);
-          const earnings = durationHours * hourlyRate;
+          
+          // Calculate regular and overtime hours
+          let regularHours = durationHours;
+          let overtimeHours = 0;
+          
+          if (durationHours > overtimeThreshold) {
+            regularHours = overtimeThreshold;
+            overtimeHours = durationHours - overtimeThreshold;
+          }
+          
+          // Calculate earnings
+          const regularEarnings = regularHours * hourlyRate;
+          const overtimeEarnings = overtimeHours * overtimeRate;
+          const totalEarnings = regularEarnings + overtimeEarnings;
           
           // Update the session in the database
           if (currentSessionId) {
@@ -130,7 +148,7 @@ export function TrackerPage() {
               .from("sessions")
               .update({
                 end_time: now.toISOString(),
-                earnings: earnings
+                earnings: totalEarnings
               })
               .eq("id", currentSessionId);
             
@@ -139,9 +157,15 @@ export function TrackerPage() {
             }
           }
           
+          // Prepare toast message with overtime details if applicable
+          let earningsMessage = `You earned $${totalEarnings.toFixed(2)} for this session.`;
+          if (overtimeHours > 0) {
+            earningsMessage = `You earned $${totalEarnings.toFixed(2)} (includes $${overtimeEarnings.toFixed(2)} overtime) for this session.`;
+          }
+          
           toast({
             title: "Time Tracking Stopped",
-            description: `You earned $${earnings.toFixed(2)} for this session.`,
+            description: earningsMessage,
           });
           
           // Clear the active timer
@@ -184,7 +208,10 @@ export function TrackerPage() {
             <CardContent>
               <p className="font-medium">{locationDetails?.name || "Working"}</p>
               <p className="text-sm text-muted-foreground">{locationDetails?.address}</p>
-              <p className="text-sm mt-1">Hourly rate: ${locationDetails?.hourly_rate.toFixed(2)}/hr</p>
+              <div className="flex flex-col gap-1 mt-2">
+                <p className="text-sm">Regular rate: ${locationDetails?.hourly_rate.toFixed(2)}/hr</p>
+                <p className="text-sm">Overtime rate: ${overtimeRate.toFixed(2)}/hr (after {overtimeThreshold}h)</p>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -205,6 +232,7 @@ export function TrackerPage() {
           overtimeRate={overtimeRate}
           startTime={startTime}
           isActive={isTracking}
+          overtimeThresholdHours={overtimeThreshold}
         />
       </div>
     </div>
