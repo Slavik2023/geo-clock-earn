@@ -123,24 +123,41 @@ export function LocationsManager() {
       // In a real app, you would use a geocoding API here
       // For demo purposes, we'll skip this step
       
-      const locationData = {
-        ...data,
-        latitude,
-        longitude,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-      };
+      const user = await supabase.auth.getUser();
+      const userId = user.data.user?.id;
+      
+      if (!userId) {
+        throw new Error("User not authenticated");
+      }
       
       let result;
       
       if (editingLocation) {
         // Update existing location
+        const locationData = {
+          ...data,
+          latitude,
+          longitude,
+        };
+        
         result = await supabase
           .from("locations")
           .update(locationData)
           .eq("id", editingLocation.id)
           .select();
       } else {
-        // Insert new location
+        // Insert new location - Fix: Ensure all required fields are present
+        const locationData = {
+          name: data.name,         // Required field from the form
+          address: data.address,   // Required field from the form
+          hourly_rate: data.hourly_rate, // Required field from the form
+          zip_code: data.zip_code || null,
+          radius: data.radius || 100,
+          latitude,
+          longitude,
+          user_id: userId,
+        };
+        
         result = await supabase
           .from("locations")
           .insert(locationData)

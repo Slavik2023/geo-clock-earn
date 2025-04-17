@@ -291,7 +291,11 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
                             variant="outline" 
                             onClick={() => {
                               handleLocationSelected(location);
-                              document.querySelector('[data-radix-dialog-close]')?.click();
+                              // Fix: Use proper DOM handling instead of .click()
+                              const closeButton = document.querySelector('[data-radix-dialog-close]');
+                              if (closeButton instanceof HTMLElement) {
+                                closeButton.click();
+                              }
                             }}
                             className="justify-start"
                           >
