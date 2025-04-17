@@ -8,45 +8,59 @@ import {
   SelectValue, 
 } from "@/components/ui/select";
 import { WorkSessionCard, WorkSession } from "@/components/time-tracker/WorkSessionCard";
-import { addDays, subDays, startOfWeek, endOfWeek, format } from "date-fns";
+import { startOfDay, endOfDay, subDays, startOfWeek, endOfWeek } from "date-fns";
+import { fetchSessions, fetchSessionsByDateRange } from "@/components/time-tracker/services/sessionService";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function HistoryPage() {
-  const [sessions, setSessions] = useState<WorkSession[]>([]);
   const [filter, setFilter] = useState("week");
-
-  useEffect(() => {
-    // In a real app, this data would come from an API or local storage
-    const mockData: WorkSession[] = generateMockSessions();
-    setSessions(mockData);
-  }, []);
-
-  // Filter sessions based on the selected time period
-  const filteredSessions = sessions.filter(session => {
+  
+  // Get date range based on selected filter
+  const getDateRange = () => {
     const now = new Date();
-    const sessionDate = new Date(session.startTime);
     
     switch (filter) {
       case "today":
-        return sessionDate.toDateString() === now.toDateString();
+        return { start: startOfDay(now), end: endOfDay(now) };
       case "yesterday":
         const yesterday = subDays(now, 1);
-        return sessionDate.toDateString() === yesterday.toDateString();
+        return { start: startOfDay(yesterday), end: endOfDay(yesterday) };
       case "week":
-        const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-        return sessionDate >= weekStart && sessionDate <= weekEnd;
+        return { 
+          start: startOfWeek(now, { weekStartsOn: 1 }), 
+          end: endOfWeek(now, { weekStartsOn: 1 }) 
+        };
       case "all":
-        return true;
       default:
-        return true;
+        // For "all", we'll fetch all sessions without date filtering
+        return null;
     }
+  };
+  
+  const dateRange = getDateRange();
+  
+  // Fetch sessions data
+  const { data: sessions = [], isLoading, error } = useQuery({
+    queryKey: ["sessions", filter],
+    queryFn: async () => {
+      if (dateRange) {
+        return fetchSessionsByDateRange(dateRange.start, dateRange.end);
+      } else {
+        return fetchSessions();
+      }
+    },
   });
 
   // Calculate total earnings for the filtered period
-  const totalEarnings = filteredSessions.reduce(
+  const totalEarnings = sessions.reduce(
     (sum, session) => sum + session.earnings, 
     0
   );
+
+  if (error) {
+    console.error("Error loading sessions:", error);
+  }
 
   return (
     <div className="space-y-6">
@@ -76,13 +90,30 @@ export function HistoryPage() {
       <div className="bg-muted p-4 rounded-lg">
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">Total Earnings</span>
-          <span className="text-2xl font-bold">${totalEarnings.toFixed(2)}</span>
+          {isLoading ? (
+            <Skeleton className="h-8 w-24" />
+          ) : (
+            <span className="text-2xl font-bold">${totalEarnings.toFixed(2)}</span>
+          )}
         </div>
       </div>
 
-      {filteredSessions.length > 0 ? (
+      {isLoading ? (
         <div className="space-y-4">
-          {filteredSessions.map(session => (
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="p-4 border rounded-lg">
+              <Skeleton className="h-6 w-36 mb-2" />
+              <Skeleton className="h-4 w-48 mb-4" />
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : sessions.length > 0 ? (
+        <div className="space-y-4">
+          {sessions.map(session => (
             <WorkSessionCard key={session.id} session={session} />
           ))}
         </div>
@@ -93,43 +124,4 @@ export function HistoryPage() {
       )}
     </div>
   );
-}
-
-// Helper function to generate mock data
-function generateMockSessions(): WorkSession[] {
-  const now = new Date();
-  const yesterday = subDays(now, 1);
-  const twoDaysAgo = subDays(now, 2);
-  const threeDaysAgo = subDays(now, 3);
-  
-  return [
-    {
-      id: "1",
-      startTime: new Date(now.setHours(9, 0, 0, 0)),
-      endTime: new Date(now.setHours(17, 30, 0, 0)),
-      location: "Construction Site A",
-      earnings: 212.50,
-    },
-    {
-      id: "2",
-      startTime: new Date(yesterday.setHours(8, 30, 0, 0)),
-      endTime: new Date(yesterday.setHours(16, 0, 0, 0)),
-      location: "Construction Site B",
-      earnings: 187.50,
-    },
-    {
-      id: "3",
-      startTime: new Date(twoDaysAgo.setHours(9, 15, 0, 0)),
-      endTime: new Date(twoDaysAgo.setHours(18, 0, 0, 0)),
-      location: "Construction Site A",
-      earnings: 219.75,
-    },
-    {
-      id: "4",
-      startTime: new Date(threeDaysAgo.setHours(8, 0, 0, 0)),
-      endTime: new Date(threeDaysAgo.setHours(15, 45, 0, 0)),
-      location: "Construction Site C",
-      earnings: 193.50,
-    },
-  ];
 }
