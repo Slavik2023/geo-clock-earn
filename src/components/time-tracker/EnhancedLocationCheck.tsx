@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { MapPin, AlertCircle, CheckCircle, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { LocationsManager } from "./LocationsManager";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { LocationsMap } from "./LocationsMap";
 
 interface EnhancedLocationCheckProps {
   onLocationVerified: (verified: boolean, locationDetails?: LocationDetails) => void;
@@ -36,6 +39,7 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
   const [manualAddress, setManualAddress] = useState("");
   const [isEnteringManually, setIsEnteringManually] = useState(false);
   const [nearbyLocation, setNearbyLocation] = useState<any | null>(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   useEffect(() => {
     async function fetchLocations() {
@@ -210,6 +214,27 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
     });
   };
 
+  const handleMapLocationSelected = (location: { address: string; latitude: number; longitude: number }) => {
+    setSelectedLocation({
+      address: location.address,
+      hourly_rate: 25,
+      latitude: location.latitude,
+      longitude: location.longitude
+    });
+    
+    setStatus("verified");
+    setMessage(`Map location selected: ${location.address}`);
+    
+    onLocationVerified(true, {
+      address: location.address,
+      hourly_rate: 25,
+      latitude: location.latitude,
+      longitude: location.longitude
+    });
+    
+    setIsMapOpen(false);
+  };
+
   return (
     <div 
       className={cn(
@@ -241,6 +266,27 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
         
         {status === "selecting" && !isEnteringManually && (
           <div className="mt-2 flex flex-wrap gap-2">
+            <Sheet open={isMapOpen} onOpenChange={setIsMapOpen}>
+              <SheetTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-white"
+                >
+                  <Map className="h-3 w-3 mr-1" />
+                  Select on Map
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:max-w-md">
+                <SheetHeader>
+                  <SheetTitle>Select Your Location</SheetTitle>
+                </SheetHeader>
+                <div className="py-4">
+                  <LocationsMap onSelectLocation={handleMapLocationSelected} />
+                </div>
+              </SheetContent>
+            </Sheet>
+            
             {savedLocations.length > 0 ? (
               <>
                 <div className="w-full mt-1 mb-1">
@@ -251,7 +297,7 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
                     key={location.id} 
                     variant="outline" 
                     size="sm" 
-                    className="text-xs"
+                    className="text-xs bg-white"
                     onClick={() => handleLocationSelected(location)}
                   >
                     <MapPin className="h-3 w-3 mr-1" />
@@ -262,7 +308,7 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
                 {savedLocations.length > 3 && (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="text-xs">
+                      <Button variant="outline" size="sm" className="text-xs bg-white">
                         +{savedLocations.length - 3} more
                       </Button>
                     </DialogTrigger>

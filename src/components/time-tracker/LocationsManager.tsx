@@ -1,177 +1,196 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger
-} from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/use-toast";
-import { MapPin, Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { LocationForm } from "./LocationForm";
-import { LocationCard } from "./LocationCard";
-import { Location, LocationFormValues } from "./schema/locationSchema";
-import { fetchLocations, insertLocation, updateLocation, deleteLocation } from "./services/locationService";
+import { LocationsMap } from "./LocationsMap";
+import { Location } from "./schema/locationSchema";
+import { createLocation, deleteLocation, updateLocation } from "./services/locationService";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function LocationsManager() {
-  const { toast } = useToast();
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [mapSelectedLocation, setMapSelectedLocation] = useState<{
+    address: string;
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
-  // Fetch user's saved locations
-  useEffect(() => {
-    async function loadLocations() {
-      try {
-        const data = await fetchLocations();
-        setLocations(data);
-      } catch (error) {
-        console.error("Error fetching locations:", error);
-        toast({
-          variant: "destructive",
-          title: "Error fetching locations",
-          description: "Please try again later.",
-        });
-      }
+  const { data: locations = [], isLoading: isLoadingLocations } = useQuery({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const { data } = await supabase.from("locations").select("*");
+      return data || [];
     }
+  });
 
-    loadLocations();
-  }, [toast]);
-
-  const handleAddLocation = async (data: LocationFormValues) => {
+  const handleSubmit = async (data: any) => {
     setIsLoading(true);
     try {
-      // In a real app, you would use a geocoding API here
-      let latitude = null;
-      let longitude = null;
-      
-      const user = await supabase.auth.getUser();
-      const userId = user.data.user?.id;
-      
-      if (!userId) {
-        throw new Error("User not authenticated");
-      }
-      
       if (editingLocation) {
-        // Update existing location
+        await updateLocation(editingLocation.id!, data);
+      } else {
         const locationData = {
           ...data,
-          latitude,
-          longitude,
+          latitude: mapSelectedLocation?.latitude || null,
+          longitude: mapSelectedLocation?.longitude || null,
         };
-        
-        await updateLocation(editingLocation.id, locationData);
-      } else {
-        // Insert new location
-        await insertLocation({
-          name: data.name,
-          address: data.address,
-          hourly_rate: data.hourly_rate,
-          overtime_rate: data.overtime_rate,
-          zip_code: data.zip_code || null,
-          radius: data.radius || 100,
-          latitude,
-          longitude,
-          user_id: userId,
-        });
+        await createLocation(locationData);
       }
       
-      toast({
-        title: editingLocation ? "Location updated" : "Location added",
-        description: `${data.name} has been ${editingLocation ? "updated" : "added"} successfully.`,
-      });
-      
-      // Refresh the location list
-      const refreshedLocations = await fetchLocations();
-      setLocations(refreshedLocations);
-      setOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["locations"] });
+      setIsFormOpen(false);
       setEditingLocation(null);
+      setMapSelectedLocation(null);
     } catch (error) {
       console.error("Error saving location:", error);
-      toast({
-        variant: "destructive",
-        title: "Error saving location",
-        description: "Please try again later.",
-      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleEditLocation = (location: Location) => {
-    setEditingLocation(location);
-    setOpen(true);
-  };
-
-  const handleDeleteLocation = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this location?")) return;
-    
-    try {
-      await deleteLocation(id);
-      
-      toast({
-        title: "Location deleted",
-        description: "The location has been removed.",
-      });
-      
-      // Update the locations list
-      setLocations(locations.filter(loc => loc.id !== id));
-    } catch (error) {
-      console.error("Error deleting location:", error);
-      toast({
-        variant: "destructive",
-        title: "Error deleting location",
-        description: "Please try again later.",
-      });
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this location?")) {
+      try {
+        await deleteLocation(id);
+        queryClient.invalidateQueries({ queryKey: ["locations"] });
+      } catch (error) {
+        console.error("Error deleting location:", error);
+      }
     }
   };
 
+  const handleEdit = (location: Location) => {
+    setEditingLocation(location);
+    setIsFormOpen(true);
+  };
+
+  const handleMapLocationSelected = (location: { address: string; latitude: number; longitude: number }) => {
+    setMapSelectedLocation(location);
+    setIsMapOpen(false);
+    setIsFormOpen(true);
+  };
+
+  const openNewLocationForm = () => {
+    setEditingLocation(null);
+    setIsFormOpen(true);
+  };
+
+  const openLocationMap = () => {
+    setIsMapOpen(true);
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Saved Locations</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditingLocation(null)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Location
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingLocation ? "Edit Location" : "Add New Location"}
-              </DialogTitle>
-            </DialogHeader>
-            <LocationForm 
-              onSubmit={handleAddLocation}
-              editingLocation={editingLocation}
-              isLoading={isLoading}
-              open={open}
-            />
-          </DialogContent>
-        </Dialog>
+        <h2 className="text-lg font-medium">Saved Locations</h2>
+        <div className="flex gap-2">
+          <Sheet open={isMapOpen} onOpenChange={setIsMapOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" onClick={openLocationMap} size="sm">
+                Add with Map
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:max-w-md">
+              <SheetHeader>
+                <SheetTitle>Select Location on Map</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6">
+                <LocationsMap onSelectLocation={handleMapLocationSelected} />
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <SheetTrigger asChild>
+              <Button onClick={openNewLocationForm} size="sm">
+                <PlusCircle className="h-4 w-4 mr-1" />
+                Add Location
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:max-w-md">
+              <SheetHeader>
+                <SheetTitle>{editingLocation ? "Edit Location" : "Add New Location"}</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6">
+                <LocationForm
+                  onSubmit={handleSubmit}
+                  editingLocation={editingLocation}
+                  isLoading={isLoading}
+                  open={isFormOpen}
+                  initialAddress={mapSelectedLocation?.address}
+                  initialCoordinates={
+                    mapSelectedLocation
+                      ? {
+                          latitude: mapSelectedLocation.latitude,
+                          longitude: mapSelectedLocation.longitude,
+                        }
+                      : null
+                  }
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
-      
-      {locations.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p>No saved locations yet.</p>
-          <p className="text-sm">Add a location to get started.</p>
+
+      {isLoadingLocations ? (
+        <div className="flex justify-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      ) : locations.length === 0 ? (
+        <div className="p-8 text-center border rounded-md">
+          <h3 className="text-lg font-medium mb-2">No saved locations yet.</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Add a location to get started.
+          </p>
+          <div className="flex justify-center gap-2">
+            <Button variant="outline" onClick={openLocationMap}>
+              Add with Map
+            </Button>
+            <Button onClick={openNewLocationForm}>
+              Add Manually
+            </Button>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {locations.map((location) => (
-            <LocationCard 
+        <div className="grid gap-4">
+          {locations.map((location: Location) => (
+            <div
               key={location.id}
-              location={location}
-              onEdit={handleEditLocation}
-              onDelete={handleDeleteLocation}
-            />
+              className="border rounded-md p-4 hover:bg-accent/50 transition-colors"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium">{location.name}</h3>
+                  <p className="text-sm text-muted-foreground">{location.address}</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                    <span className="text-xs">Rate: ${location.hourly_rate}/hr</span>
+                    {location.overtime_rate && (
+                      <span className="text-xs">OT: ${location.overtime_rate}/hr</span>
+                    )}
+                    {location.radius && (
+                      <span className="text-xs">Radius: {location.radius}m</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(location)}>
+                    Edit
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleDelete(location.id!)}>
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       )}

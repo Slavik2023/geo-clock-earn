@@ -20,18 +20,32 @@ interface LocationFormProps {
   editingLocation: Location | null;
   isLoading: boolean;
   open: boolean;
+  initialAddress?: string;
+  initialCoordinates?: {
+    latitude: number;
+    longitude: number;
+  } | null;
 }
 
-export function LocationForm({ onSubmit, editingLocation, isLoading, open }: LocationFormProps) {
+export function LocationForm({ 
+  onSubmit, 
+  editingLocation, 
+  isLoading, 
+  open, 
+  initialAddress, 
+  initialCoordinates 
+}: LocationFormProps) {
   const form = useForm<LocationFormValues>({
     resolver: zodResolver(locationSchema),
     defaultValues: {
       name: "",
-      address: "",
+      address: initialAddress || "",
       hourly_rate: 25,
       overtime_rate: 37.5,
       zip_code: "",
       radius: 100,
+      latitude: initialCoordinates?.latitude || null,
+      longitude: initialCoordinates?.longitude || null,
     },
   });
 
@@ -46,19 +60,23 @@ export function LocationForm({ onSubmit, editingLocation, isLoading, open }: Loc
           overtime_rate: editingLocation.overtime_rate,
           zip_code: editingLocation.zip_code || "",
           radius: editingLocation.radius || 100,
+          latitude: editingLocation.latitude || null,
+          longitude: editingLocation.longitude || null,
         });
       } else {
         form.reset({
           name: "",
-          address: "",
+          address: initialAddress || "",
           hourly_rate: 25,
           overtime_rate: 37.5,
           zip_code: "",
           radius: 100,
+          latitude: initialCoordinates?.latitude || null,
+          longitude: initialCoordinates?.longitude || null,
         });
       }
     }
-  }, [open, editingLocation, form]);
+  }, [open, editingLocation, form, initialAddress, initialCoordinates]);
 
   return (
     <Form {...form}>
@@ -155,6 +173,12 @@ export function LocationForm({ onSubmit, editingLocation, isLoading, open }: Loc
             )}
           />
         </div>
+        
+        {initialCoordinates && (
+          <div className="p-3 bg-blue-50 rounded-md text-xs">
+            Location coordinates have been automatically detected from the map.
+          </div>
+        )}
         
         <DialogFooter>
           <Button 
