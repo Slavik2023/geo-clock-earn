@@ -85,7 +85,7 @@ export function ProfilePage() {
     
     try {
       const settingsData: UserSettingsUpdate = {
-        user_id: userId,
+        user_id: userId, // Ensure this is always set and non-optional
         name,
         hourly_rate: hourlyRate,
         overtime_rate: overtimeRate,
