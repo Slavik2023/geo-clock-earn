@@ -130,15 +130,16 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
     if (searchInputRef.current) {
       const searchBox = new google.maps.places.SearchBox(searchInputRef.current);
       
-      // Add the input to map controls, but do it outside of the React ref system
-      // This prevents the type mismatch with MVCObject
-      const input = document.getElementById("pac-input");
-      if (input) {
-        newMap.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
+      // Position the search input outside the map control system
+      // Instead of trying to push the HTML element to map controls, we'll style it to appear over the map
+      if (searchInputRef.current) {
+        searchInputRef.current.style.position = "relative";
+        searchInputRef.current.style.zIndex = "10";
+        searchInputRef.current.style.margin = "10px auto";
+        searchInputRef.current.style.display = "block";
       }
       
-      // Listen for the event fired when the user selects a prediction and retrieve
-      // more details for that place.
+      // Listen for the event fired when the user selects a prediction
       searchBox.addListener("places_changed", () => {
         const places = searchBox.getPlaces();
         
@@ -214,13 +215,15 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
 
       {!showApiKeyInput && (
         <>
-          <input
-            id="pac-input"
-            ref={searchInputRef}
-            className="w-full max-w-xs mx-auto p-2 border rounded-md shadow-sm text-sm"
-            type="text"
-            placeholder="Search for a location"
-          />
+          <div className="relative">
+            <input
+              id="pac-input"
+              ref={searchInputRef}
+              className="w-full max-w-xs mx-auto p-2 border rounded-md shadow-sm text-sm"
+              type="text"
+              placeholder="Search for a location"
+            />
+          </div>
 
           <div ref={mapRef} className="w-full h-[300px] rounded-md border mb-2 bg-gray-100" />
 
