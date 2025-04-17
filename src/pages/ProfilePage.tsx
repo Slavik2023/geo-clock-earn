@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { supabase, UserSettings, UserSettingsUpdate } from "@/integrations/supabase/client";
+import { supabase, UserSettings } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 export function ProfilePage() {
@@ -84,38 +84,46 @@ export function ProfilePage() {
     setIsLoading(true);
     
     try {
-      // Create the settings object, ensuring user_id is always provided
-      const settingsData: UserSettingsUpdate = {
-        user_id: userId, // Explicitly set as non-optional
-        name,
-        hourly_rate: hourlyRate,
-        overtime_rate: overtimeRate,
-        overtime_threshold: overtimeThreshold,
-        enable_location_verification: enableLocationVerification,
-        enable_overtime_calculation: enableOvertimeCalculation,
-        updated_at: new Date().toISOString()
-      };
-      
-      let result;
-      
       if (userSettingsId) {
-        // For updates, we need to omit user_id as it's not needed for the update operation
-        // Create a new object without user_id for the update operation
-        const { user_id, ...updateData } = settingsData;
+        // For updates, we don't need to include user_id
+        const updateData = {
+          name,
+          hourly_rate: hourlyRate,
+          overtime_rate: overtimeRate,
+          overtime_threshold: overtimeThreshold,
+          enable_location_verification: enableLocationVerification,
+          enable_overtime_calculation: enableOvertimeCalculation,
+          updated_at: new Date().toISOString()
+        };
         
-        result = await supabase
+        const result = await supabase
           .from('user_settings')
           .update(updateData)
           .eq('id', userSettingsId);
+          
+        if (result.error) {
+          throw result.error;
+        }
       } else {
-        // For inserts, we need user_id (it's required by the type and the database)
-        result = await supabase
+        // For inserts, we need to include user_id
+        const insertData = {
+          user_id: userId,
+          name,
+          hourly_rate: hourlyRate,
+          overtime_rate: overtimeRate,
+          overtime_threshold: overtimeThreshold,
+          enable_location_verification: enableLocationVerification,
+          enable_overtime_calculation: enableOvertimeCalculation,
+          updated_at: new Date().toISOString()
+        };
+        
+        const result = await supabase
           .from('user_settings')
-          .insert(settingsData);
-      }
-      
-      if (result.error) {
-        throw result.error;
+          .insert(insertData);
+          
+        if (result.error) {
+          throw result.error;
+        }
       }
       
       toast({
