@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -50,43 +49,26 @@ export function ProfilePage() {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
         setUserId(data.user.id);
-        // Load user settings from database or localStorage
-        loadUserSettings(data.user.id);
+        loadUserSettings();
       }
     }
     
     getCurrentUser();
   }, []);
 
-  // Load user settings from database or localStorage
-  const loadUserSettings = async (userId: string) => {
+  // Load user settings from localStorage
+  const loadUserSettings = () => {
     try {
-      // Try to load from database first
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-      
-      if (data) {
-        form.reset({
-          name: data.name || "John Doe",
-          hourlyRate: data.hourly_rate || 25,
-          overtimeRate: data.overtime_rate || 37.5,
-          overtimeThreshold: data.overtime_threshold || 8,
-          enableLocationVerification: data.enable_location_verification !== false,
-          enableOvertimeCalculation: data.enable_overtime_calculation !== false,
-        });
-        return;
-      }
-      
-      // If no data in database, try localStorage
       const savedSettings = localStorage.getItem("userSettings");
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
         form.reset({
-          ...settings,
-          overtimeThreshold: settings.overtimeThreshold || 8
+          name: settings.name || "John Doe",
+          hourlyRate: settings.hourlyRate || 25,
+          overtimeRate: settings.overtimeRate || 37.5,
+          overtimeThreshold: settings.overtimeThreshold || 8,
+          enableLocationVerification: settings.enableLocationVerification !== false,
+          enableOvertimeCalculation: settings.enableOvertimeCalculation !== false,
         });
       }
     } catch (error) {
@@ -110,35 +92,10 @@ export function ProfilePage() {
   });
 
   async function onSubmit(data: ProfileFormValues) {
-    if (!userId) {
-      toast({
-        variant: "destructive",
-        title: "Authentication error",
-        description: "You must be logged in to save settings.",
-      });
-      return;
-    }
-
     setIsLoading(true);
     
     try {
-      // Save to Supabase
-      const { error } = await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: userId,
-          name: data.name,
-          hourly_rate: data.hourlyRate,
-          overtime_rate: data.overtimeRate,
-          overtime_threshold: data.overtimeThreshold,
-          enable_location_verification: data.enableLocationVerification,
-          enable_overtime_calculation: data.enableOvertimeCalculation,
-          updated_at: new Date().toISOString()
-        });
-      
-      if (error) throw error;
-      
-      // Also save to localStorage as backup
+      // Save to localStorage
       localStorage.setItem("userSettings", JSON.stringify(data));
       
       toast({

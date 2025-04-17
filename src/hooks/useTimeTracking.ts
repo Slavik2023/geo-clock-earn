@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -28,25 +27,16 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
       if (data.user) {
         setUserId(data.user.id);
         
-        // Load user settings
-        const { data: settings } = await supabase
-          .from('user_settings')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .single();
-        
-        if (settings) {
-          setHourlyRate(settings.hourly_rate || 25);
-          setOvertimeRate(settings.overtime_rate || 37.5);
-          setOvertimeThreshold(settings.overtime_threshold || 8);
-        } else {
-          // Try to load from localStorage if no settings in database
-          const savedSettings = localStorage.getItem("userSettings");
-          if (savedSettings) {
+        // Load user settings from localStorage
+        const savedSettings = localStorage.getItem("userSettings");
+        if (savedSettings) {
+          try {
             const parsedSettings = JSON.parse(savedSettings);
             setHourlyRate(parsedSettings.hourlyRate || 25);
             setOvertimeRate(parsedSettings.overtimeRate || 37.5);
             setOvertimeThreshold(parsedSettings.overtimeThreshold || 8);
+          } catch (error) {
+            console.error("Error parsing saved settings:", error);
           }
         }
       }
