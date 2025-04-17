@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -27,17 +28,21 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
       if (data.user) {
         setUserId(data.user.id);
         
-        // Load user settings from localStorage
-        const savedSettings = localStorage.getItem("userSettings");
-        if (savedSettings) {
-          try {
-            const parsedSettings = JSON.parse(savedSettings);
-            setHourlyRate(parsedSettings.hourlyRate || 25);
-            setOvertimeRate(parsedSettings.overtimeRate || 37.5);
-            setOvertimeThreshold(parsedSettings.overtimeThreshold || 8);
-          } catch (error) {
-            console.error("Error parsing saved settings:", error);
-          }
+        // Load user settings from Supabase
+        const { data: settingsData, error } = await supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .single();
+        
+        if (settingsData) {
+          setHourlyRate(settingsData.hourly_rate);
+          setOvertimeRate(settingsData.overtime_rate);
+          setOvertimeThreshold(settingsData.overtime_threshold);
+        }
+        
+        if (error) {
+          console.error("Error loading user settings:", error);
         }
       }
     }
@@ -45,7 +50,7 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
     getUserAndSettings();
   }, []);
 
-  // Load active timer from localStorage
+  // Load active timer from localStorage (to be migrated to Supabase in future)
   useEffect(() => {
     const activeTimerStart = localStorage.getItem("activeTimerStart");
     const activeSessionId = localStorage.getItem("activeSessionId");

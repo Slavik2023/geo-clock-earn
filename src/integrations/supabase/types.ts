@@ -101,6 +101,42 @@ export type Database = {
           },
         ]
       }
+      user_settings: {
+        Row: {
+          enable_location_verification: boolean | null
+          enable_overtime_calculation: boolean | null
+          hourly_rate: number
+          id: string
+          name: string | null
+          overtime_rate: number | null
+          overtime_threshold: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          enable_location_verification?: boolean | null
+          enable_overtime_calculation?: boolean | null
+          hourly_rate?: number
+          id?: string
+          name?: string | null
+          overtime_rate?: number | null
+          overtime_threshold?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          enable_location_verification?: boolean | null
+          enable_overtime_calculation?: boolean | null
+          hourly_rate?: number
+          id?: string
+          name?: string | null
+          overtime_rate?: number | null
+          overtime_threshold?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

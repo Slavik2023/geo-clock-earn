@@ -1,22 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { 
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,26 +35,35 @@ export function ProfilePage() {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
         setUserId(data.user.id);
-        loadUserSettings();
+        await loadUserSettings(data.user.id);
       }
     }
     
     getCurrentUser();
   }, []);
 
-  // Load user settings from localStorage
-  const loadUserSettings = () => {
+  // Load user settings from Supabase
+  const loadUserSettings = async (userId: string) => {
     try {
-      const savedSettings = localStorage.getItem("userSettings");
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error("Error loading user settings:", error);
+        return;
+      }
+
+      if (data) {
         form.reset({
-          name: settings.name || "John Doe",
-          hourlyRate: settings.hourlyRate || 25,
-          overtimeRate: settings.overtimeRate || 37.5,
-          overtimeThreshold: settings.overtimeThreshold || 8,
-          enableLocationVerification: settings.enableLocationVerification !== false,
-          enableOvertimeCalculation: settings.enableOvertimeCalculation !== false,
+          name: data.name || "John Doe",
+          hourlyRate: data.hourly_rate,
+          overtimeRate: data.overtime_rate,
+          overtimeThreshold: data.overtime_threshold,
+          enableLocationVerification: data.enable_location_verification,
+          enableOvertimeCalculation: data.enable_overtime_calculation,
         });
       }
     } catch (error) {
@@ -91,13 +86,28 @@ export function ProfilePage() {
     defaultValues,
   });
 
-  async function onSubmit(data: ProfileFormValues) {
+  async function onSubmit(formData: ProfileFormValues) {
     setIsLoading(true);
     
     try {
-      // Save to localStorage
-      localStorage.setItem("userSettings", JSON.stringify(data));
-      
+      const { data, error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: userId!,
+          name: formData.name,
+          hourly_rate: formData.hourlyRate,
+          overtime_rate: formData.overtimeRate,
+          overtime_threshold: formData.overtimeThreshold,
+          enable_location_verification: formData.enableLocationVerification,
+          enable_overtime_calculation: formData.enableOvertimeCalculation,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
       toast({
         title: "Settings saved",
         description: "Your profile settings have been updated.",
