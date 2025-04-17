@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -5,49 +6,15 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger,
-  DialogFooter 
+  DialogTrigger
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
 import { useToast } from "@/components/ui/use-toast";
-import { MapPin, Plus, Edit2, Trash2 } from "lucide-react";
+import { MapPin, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-
-// Define the location schema
-const locationSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  address: z.string().min(5, "Address must be at least 5 characters"),
-  hourly_rate: z.coerce.number().min(1, "Hourly rate must be at least 1"),
-  overtime_rate: z.coerce.number().min(1, "Overtime rate must be at least 1").optional(),
-  zip_code: z.string().optional(),
-  radius: z.coerce.number().min(10, "Radius must be at least 10 meters").default(100),
-});
-
-type LocationFormValues = z.infer<typeof locationSchema>;
-
-interface Location {
-  id: string;
-  name: string;
-  address: string;
-  hourly_rate: number;
-  overtime_rate?: number;
-  zip_code: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  radius: number | null;
-}
+import { LocationForm } from "./LocationForm";
+import { LocationCard } from "./LocationCard";
+import { Location, LocationFormValues } from "./schema/locationSchema";
+import { fetchLocations, insertLocation, updateLocation, deleteLocation } from "./services/locationService";
 
 export function LocationsManager() {
   const { toast } = useToast();
@@ -56,29 +23,12 @@ export function LocationsManager() {
   const [open, setOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
 
-  const form = useForm<LocationFormValues>({
-    resolver: zodResolver(locationSchema),
-    defaultValues: {
-      name: "",
-      address: "",
-      hourly_rate: 25,
-      overtime_rate: 37.5,
-      zip_code: "",
-      radius: 100,
-    },
-  });
-
   // Fetch user's saved locations
   useEffect(() => {
-    async function fetchLocations() {
+    async function loadLocations() {
       try {
-        const { data, error } = await supabase
-          .from("locations")
-          .select("*")
-          .order("name");
-        
-        if (error) throw error;
-        setLocations(data || []);
+        const data = await fetchLocations();
+        setLocations(data);
       } catch (error) {
         console.error("Error fetching locations:", error);
         toast({
@@ -89,43 +39,15 @@ export function LocationsManager() {
       }
     }
 
-    fetchLocations();
+    loadLocations();
   }, [toast]);
-
-  // Reset form when dialog opens/closes
-  useEffect(() => {
-    if (open) {
-      if (editingLocation) {
-        form.reset({
-          name: editingLocation.name,
-          address: editingLocation.address,
-          hourly_rate: editingLocation.hourly_rate,
-          overtime_rate: editingLocation.overtime_rate,
-          zip_code: editingLocation.zip_code || "",
-          radius: editingLocation.radius || 100,
-        });
-      } else {
-        form.reset({
-          name: "",
-          address: "",
-          hourly_rate: 25,
-          overtime_rate: 37.5,
-          zip_code: "",
-          radius: 100,
-        });
-      }
-    }
-  }, [open, editingLocation, form]);
 
   const handleAddLocation = async (data: LocationFormValues) => {
     setIsLoading(true);
     try {
-      // Try to get the coordinates from the address
+      // In a real app, you would use a geocoding API here
       let latitude = null;
       let longitude = null;
-      
-      // In a real app, you would use a geocoding API here
-      // For demo purposes, we'll skip this step
       
       const user = await supabase.auth.getUser();
       const userId = user.data.user?.id;
@@ -133,8 +55,6 @@ export function LocationsManager() {
       if (!userId) {
         throw new Error("User not authenticated");
       }
-      
-      let result;
       
       if (editingLocation) {
         // Update existing location
@@ -144,32 +64,21 @@ export function LocationsManager() {
           longitude,
         };
         
-        result = await supabase
-          .from("locations")
-          .update(locationData)
-          .eq("id", editingLocation.id)
-          .select();
+        await updateLocation(editingLocation.id, locationData);
       } else {
-        // Insert new location - Fix: Ensure all required fields are present
-        const locationData = {
-          name: data.name,         // Required field from the form
-          address: data.address,   // Required field from the form
-          hourly_rate: data.hourly_rate, // Required field from the form
+        // Insert new location
+        await insertLocation({
+          name: data.name,
+          address: data.address,
+          hourly_rate: data.hourly_rate,
           overtime_rate: data.overtime_rate,
           zip_code: data.zip_code || null,
           radius: data.radius || 100,
           latitude,
           longitude,
           user_id: userId,
-        };
-        
-        result = await supabase
-          .from("locations")
-          .insert(locationData)
-          .select();
+        });
       }
-      
-      if (result.error) throw result.error;
       
       toast({
         title: editingLocation ? "Location updated" : "Location added",
@@ -177,12 +86,8 @@ export function LocationsManager() {
       });
       
       // Refresh the location list
-      const { data: refreshedLocations } = await supabase
-        .from("locations")
-        .select("*")
-        .order("name");
-      
-      setLocations(refreshedLocations || []);
+      const refreshedLocations = await fetchLocations();
+      setLocations(refreshedLocations);
       setOpen(false);
       setEditingLocation(null);
     } catch (error) {
@@ -206,12 +111,7 @@ export function LocationsManager() {
     if (!confirm("Are you sure you want to delete this location?")) return;
     
     try {
-      const { error } = await supabase
-        .from("locations")
-        .delete()
-        .eq("id", id);
-      
-      if (error) throw error;
+      await deleteLocation(id);
       
       toast({
         title: "Location deleted",
@@ -247,111 +147,12 @@ export function LocationsManager() {
                 {editingLocation ? "Edit Location" : "Add New Location"}
               </DialogTitle>
             </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleAddLocation)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Main Street Office" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="123 Main St, City" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex gap-4">
-                  <FormField
-                    control={form.control}
-                    name="hourly_rate"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>Hourly Rate ($)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" min="1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="overtime_rate"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>Overtime Rate ($)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" min="1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="flex gap-4">
-                  <FormField
-                    control={form.control}
-                    name="zip_code"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>ZIP Code</FormLabel>
-                        <FormControl>
-                          <Input placeholder="10001" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="radius"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>Radius (meters)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="10" 
-                            step="10" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <DialogFooter>
-                  <Button 
-                    type="submit" 
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Saving..." : (editingLocation ? "Update" : "Save")}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
+            <LocationForm 
+              onSubmit={handleAddLocation}
+              editingLocation={editingLocation}
+              isLoading={isLoading}
+              open={open}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -365,36 +166,12 @@ export function LocationsManager() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {locations.map((location) => (
-            <Card key={location.id} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <h3 className="font-medium">{location.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {location.address}
-                      {location.zip_code && `, ${location.zip_code}`}
-                    </p>
-                    <p className="text-sm font-medium">${location.hourly_rate}/hour</p>
-                  </div>
-                  <div className="flex space-x-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleEditLocation(location)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleDeleteLocation(location.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <LocationCard 
+              key={location.id}
+              location={location}
+              onEdit={handleEditLocation}
+              onDelete={handleDeleteLocation}
+            />
           ))}
         </div>
       )}

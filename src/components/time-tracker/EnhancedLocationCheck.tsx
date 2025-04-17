@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { MapPin, AlertCircle, CheckCircle, Loader, Map } from "lucide-react";
+import { MapPin, AlertCircle, CheckCircle, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
   const [isEnteringManually, setIsEnteringManually] = useState(false);
   const [nearbyLocation, setNearbyLocation] = useState<any | null>(null);
 
-  // Fetch saved locations
   useEffect(() => {
     async function fetchLocations() {
       try {
@@ -55,9 +53,7 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
     fetchLocations();
   }, []);
 
-  // Check user's location
   useEffect(() => {
-    // Check if geolocation is supported
     if (!navigator.geolocation) {
       setStatus("error");
       setMessage("Geolocation is not supported by your browser");
@@ -65,12 +61,10 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
       return;
     }
 
-    // Request the user's position
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setCurrentLocation(position);
         
-        // Check if the user is near any saved locations
         const nearbyLoc = checkNearbyLocations(position);
         
         if (nearbyLoc) {
@@ -96,11 +90,9 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
             zip_code: nearbyLoc.zip_code
           });
         } else {
-          // No nearby saved location found
           setStatus("selecting");
           setMessage("Select a location or enter address manually");
           
-          // Get address from coordinates using reverse geocoding
           reverseGeocode(position.coords.latitude, position.coords.longitude);
         }
       },
@@ -128,11 +120,9 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
     );
   }, [onLocationVerified, savedLocations]);
 
-  // Check if user is near any saved locations
   const checkNearbyLocations = (position: GeolocationPosition) => {
     if (!savedLocations.length) return null;
     
-    // Find if user is within radius of any saved location
     for (const location of savedLocations) {
       if (location.latitude && location.longitude) {
         const distance = calculateDistance(
@@ -142,7 +132,6 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
           location.longitude
         );
         
-        // Check if within radius (default 100m if not specified)
         const radius = location.radius || 100;
         if (distance <= radius) {
           return location;
@@ -153,9 +142,8 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
     return null;
   };
 
-  // Calculate distance between two points in meters
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371e3; // Earth's radius in meters
+    const R = 6371e3;
     const φ1 = lat1 * Math.PI/180;
     const φ2 = lat2 * Math.PI/180;
     const Δφ = (lat2-lat1) * Math.PI/180;
@@ -166,13 +154,10 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
               Math.sin(Δλ/2) * Math.sin(Δλ/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
-    return R * c; // Distance in meters
+    return R * c;
   };
 
-  // Simple mock reverse geocoding (in a real app, use a geocoding API)
   const reverseGeocode = async (latitude: number, longitude: number) => {
-    // In a real app, you would use a service like Google Maps Geocoding API
-    // For demo purposes, we'll just create a placeholder address
     const mockAddress = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
     setManualAddress(mockAddress);
   };
@@ -182,7 +167,7 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
     
     setSelectedLocation({
       address: manualAddress,
-      hourly_rate: 25, // Default hourly rate
+      hourly_rate: 25,
       latitude: currentLocation?.coords.latitude,
       longitude: currentLocation?.coords.longitude
     });
@@ -292,7 +277,6 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
                             variant="outline" 
                             onClick={() => {
                               handleLocationSelected(location);
-                              // Fix: Use proper DOM handling instead of .click()
                               const closeButton = document.querySelector('[data-radix-dialog-close]');
                               if (closeButton instanceof HTMLElement) {
                                 closeButton.click();
