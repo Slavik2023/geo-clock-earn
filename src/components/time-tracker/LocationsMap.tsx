@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
-import { MapPin, Check } from "lucide-react";
+import { MapPin, Check, Locate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
 
   // Load Google Maps API
   const loadGoogleMapsApi = () => {
@@ -72,37 +73,6 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
     });
 
     setMarker(newMarker);
-
-    // Get current location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const pos = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          
-          newMap.setCenter(pos);
-          newMarker.setPosition(pos);
-          
-          // Get address for the current location
-          const geocoder = new google.maps.Geocoder();
-          geocoder.geocode({ location: pos }, (results, status) => {
-            if (status === "OK" && results && results[0]) {
-              const address = results[0].formatted_address;
-              setSelectedLocation({
-                address,
-                latitude: pos.lat,
-                longitude: pos.lng,
-              });
-            }
-          });
-        },
-        () => {
-          toast.error("Error: Unable to retrieve your location.");
-        }
-      );
-    }
 
     // Handle marker drag end
     newMarker.addListener("dragend", () => {
@@ -171,6 +141,63 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
     }
   };
 
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsLocating(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const pos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        
+        if (map && marker) {
+          map.setCenter(pos);
+          marker.setPosition(pos);
+          
+          // Get address for the current location
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ location: pos }, (results, status) => {
+            if (status === "OK" && results && results[0]) {
+              const address = results[0].formatted_address;
+              setSelectedLocation({
+                address,
+                latitude: pos.lat,
+                longitude: pos.lng,
+              });
+            }
+          });
+        }
+        
+        setIsLocating(false);
+      },
+      (error) => {
+        setIsLocating(false);
+        let errorMessage = "Unable to retrieve your location.";
+        
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = "Location access denied. Please enable location services in your browser settings.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = "Location information is unavailable.";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "The request to get your location timed out.";
+            break;
+        }
+        
+        toast.error(`Error: ${errorMessage}`);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   useEffect(() => {
     // Check if the API key is in localStorage
     const savedApiKey = localStorage.getItem("googleMapsApiKey");
@@ -215,14 +242,30 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
 
       {!showApiKeyInput && (
         <>
-          <div className="relative">
-            <input
-              id="pac-input"
-              ref={searchInputRef}
-              className="w-full max-w-xs mx-auto p-2 border rounded-md shadow-sm text-sm"
-              type="text"
-              placeholder="Search for a location"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                id="pac-input"
+                ref={searchInputRef}
+                className="w-full p-2 border rounded-md shadow-sm text-sm"
+                type="text"
+                placeholder="Search for a location"
+              />
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleGetCurrentLocation}
+              disabled={isLocating}
+              className="shrink-0"
+            >
+              {isLocating ? (
+                <div className="animate-spin h-4 w-4 border-t-2 border-b-2 border-current rounded-full mr-1" />
+              ) : (
+                <Locate className="h-4 w-4 mr-1" />
+              )}
+              {isLocating ? "Locating..." : "My Location"}
+            </Button>
           </div>
 
           <div ref={mapRef} className="w-full h-[300px] rounded-md border mb-2 bg-gray-100" />
