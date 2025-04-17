@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { WorkSession } from "../WorkSessionCard";
 
 export async function fetchSessions(): Promise<WorkSession[]> {
+  console.log("Fetching all sessions");
   const { data, error } = await supabase
     .from("sessions")
     .select("*, locations(name)")
@@ -12,6 +13,8 @@ export async function fetchSessions(): Promise<WorkSession[]> {
     console.error("Error fetching sessions:", error);
     throw error;
   }
+  
+  console.log("Fetched sessions data:", data);
   
   // Transform database records to WorkSession format
   return (data || []).map(session => ({
@@ -24,6 +27,7 @@ export async function fetchSessions(): Promise<WorkSession[]> {
 }
 
 export async function fetchSessionsByDateRange(startDate: Date, endDate: Date): Promise<WorkSession[]> {
+  console.log(`Fetching sessions from ${startDate.toISOString()} to ${endDate.toISOString()}`);
   const { data, error } = await supabase
     .from("sessions")
     .select("*, locations(name)")
@@ -35,6 +39,8 @@ export async function fetchSessionsByDateRange(startDate: Date, endDate: Date): 
     console.error("Error fetching sessions by date range:", error);
     throw error;
   }
+  
+  console.log("Fetched date range sessions data:", data);
   
   return (data || []).map(session => ({
     id: session.id,

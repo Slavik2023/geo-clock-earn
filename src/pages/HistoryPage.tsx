@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   Select,
   SelectContent,
@@ -40,21 +40,26 @@ export function HistoryPage() {
   
   const dateRange = getDateRange();
   
-  // Fetch sessions data
+  // Fetch sessions data with error handling
   const { data: sessions = [], isLoading, error } = useQuery({
     queryKey: ["sessions", filter],
     queryFn: async () => {
-      if (dateRange) {
-        return fetchSessionsByDateRange(dateRange.start, dateRange.end);
-      } else {
-        return fetchSessions();
+      try {
+        if (dateRange) {
+          return await fetchSessionsByDateRange(dateRange.start, dateRange.end);
+        } else {
+          return await fetchSessions();
+        }
+      } catch (err) {
+        console.error("Error fetching sessions:", err);
+        throw err;
       }
     },
   });
 
   // Calculate total earnings for the filtered period
   const totalEarnings = sessions.reduce(
-    (sum, session) => sum + session.earnings, 
+    (sum, session) => sum + (session.earnings || 0), 
     0
   );
 

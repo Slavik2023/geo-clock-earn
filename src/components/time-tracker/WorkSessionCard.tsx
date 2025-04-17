@@ -12,7 +12,7 @@ import { MapPinIcon, ClockIcon, DollarSignIcon } from "lucide-react";
 export interface WorkSession {
   id: string;
   startTime: Date;
-  endTime: Date;
+  endTime?: Date;
   location: string;
   earnings: number;
 }
@@ -22,15 +22,20 @@ interface WorkSessionCardProps {
 }
 
 export function WorkSessionCard({ session }: WorkSessionCardProps) {
+  // Check if endTime exists, if not use current time for duration calculation
+  const endTimeValue = session.endTime || new Date();
+  
   const duration = formatDistanceStrict(
-    session.endTime, 
+    endTimeValue, 
     session.startTime, 
     { addSuffix: false }
   );
 
   const formattedDate = format(session.startTime, "EEE, MMM d, yyyy");
   const startTimeFormatted = format(session.startTime, "h:mm a");
-  const endTimeFormatted = format(session.endTime, "h:mm a");
+  const endTimeFormatted = session.endTime 
+    ? format(session.endTime, "h:mm a")
+    : "In progress";
 
   return (
     <Card>
