@@ -12,6 +12,27 @@ export async function fetchLocations(): Promise<Location[]> {
   return data || [];
 }
 
+export async function createLocation(locationData: LocationFormValues): Promise<Location> {
+  const user = (await supabase.auth.getUser()).data.user;
+  
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+  
+  const data = {
+    ...locationData,
+    user_id: user.id
+  };
+  
+  const { data: insertedData, error } = await supabase
+    .from("locations")
+    .insert(data)
+    .select();
+  
+  if (error) throw error;
+  return insertedData[0];
+}
+
 export async function insertLocation(locationData: {
   name: string;
   address: string;
