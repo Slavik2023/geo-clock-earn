@@ -24,6 +24,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useToast } from "@/components/ui/use-toast";
+import { MapPin } from "lucide-react";
+import { LocationsManager } from "@/components/time-tracker/LocationsManager";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -107,7 +109,7 @@ export function ProfilePage() {
                 name="hourlyRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hourly Rate ($)</FormLabel>
+                    <FormLabel>Default Hourly Rate ($)</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -117,7 +119,7 @@ export function ProfilePage() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Your standard hourly pay rate
+                      Your standard hourly pay rate (when no location specified)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -197,6 +199,21 @@ export function ProfilePage() {
               </Button>
             </form>
           </Form>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <MapPin className="h-5 w-5 mr-2" />
+            Saved Locations
+          </CardTitle>
+          <CardDescription>
+            Manage your work locations and hourly rates
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LocationsManager />
         </CardContent>
       </Card>
       

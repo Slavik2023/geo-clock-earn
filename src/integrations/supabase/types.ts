@@ -9,7 +9,98 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      locations: {
+        Row: {
+          address: string
+          created_at: string | null
+          hourly_rate: number
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+          radius: number | null
+          user_id: string
+          zip_code: string | null
+        }
+        Insert: {
+          address: string
+          created_at?: string | null
+          hourly_rate: number
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          radius?: number | null
+          user_id: string
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string
+          created_at?: string | null
+          hourly_rate?: number
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          radius?: number | null
+          user_id?: string
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          earnings: number | null
+          end_time: string | null
+          hourly_rate: number
+          id: string
+          is_manual_entry: boolean | null
+          latitude: number | null
+          location_id: string | null
+          longitude: number | null
+          start_time: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          earnings?: number | null
+          end_time?: string | null
+          hourly_rate: number
+          id?: string
+          is_manual_entry?: boolean | null
+          latitude?: number | null
+          location_id?: string | null
+          longitude?: number | null
+          start_time: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          earnings?: number | null
+          end_time?: string | null
+          hourly_rate?: number
+          id?: string
+          is_manual_entry?: boolean | null
+          latitude?: number | null
+          location_id?: string | null
+          longitude?: number | null
+          start_time?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
