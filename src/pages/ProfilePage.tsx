@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Card, 
@@ -26,11 +26,13 @@ import * as z from "zod";
 import { useToast } from "@/components/ui/use-toast";
 import { MapPin } from "lucide-react";
 import { LocationsManager } from "@/components/time-tracker/LocationsManager";
+import { supabase } from "@/integrations/supabase/client";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   hourlyRate: z.coerce.number().min(1, { message: "Hourly rate must be at least $1." }),
   overtimeRate: z.coerce.number().min(1, { message: "Overtime rate must be at least $1." }),
+  overtimeThreshold: z.coerce.number().min(1, { message: "Overtime threshold must be at least 1 hour." }),
   enableLocationVerification: z.boolean().default(true),
   enableOvertimeCalculation: z.boolean().default(true),
 });
@@ -40,12 +42,64 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 export function ProfilePage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get current user when component mounts
+  useEffect(() => {
+    async function getCurrentUser() {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        setUserId(data.user.id);
+        // Load user settings from database or localStorage
+        loadUserSettings(data.user.id);
+      }
+    }
+    
+    getCurrentUser();
+  }, []);
+
+  // Load user settings from database or localStorage
+  const loadUserSettings = async (userId: string) => {
+    try {
+      // Try to load from database first
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (data) {
+        form.reset({
+          name: data.name || "John Doe",
+          hourlyRate: data.hourly_rate || 25,
+          overtimeRate: data.overtime_rate || 37.5,
+          overtimeThreshold: data.overtime_threshold || 8,
+          enableLocationVerification: data.enable_location_verification !== false,
+          enableOvertimeCalculation: data.enable_overtime_calculation !== false,
+        });
+        return;
+      }
+      
+      // If no data in database, try localStorage
+      const savedSettings = localStorage.getItem("userSettings");
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        form.reset({
+          ...settings,
+          overtimeThreshold: settings.overtimeThreshold || 8
+        });
+      }
+    } catch (error) {
+      console.error("Error loading user settings:", error);
+    }
+  };
 
   // Default values for the form
   const defaultValues: Partial<ProfileFormValues> = {
     name: "John Doe",
     hourlyRate: 25,
     overtimeRate: 37.5,
+    overtimeThreshold: 8,
     enableLocationVerification: true,
     enableOvertimeCalculation: true,
   };
@@ -55,20 +109,52 @@ export function ProfilePage() {
     defaultValues,
   });
 
-  function onSubmit(data: ProfileFormValues) {
+  async function onSubmit(data: ProfileFormValues) {
+    if (!userId) {
+      toast({
+        variant: "destructive",
+        title: "Authentication error",
+        description: "You must be logged in to save settings.",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
-    // In a real app, you would save this data to a backend or localStorage
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Save to Supabase
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: userId,
+          name: data.name,
+          hourly_rate: data.hourlyRate,
+          overtime_rate: data.overtimeRate,
+          overtime_threshold: data.overtimeThreshold,
+          enable_location_verification: data.enableLocationVerification,
+          enable_overtime_calculation: data.enableOvertimeCalculation,
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+      
+      // Also save to localStorage as backup
+      localStorage.setItem("userSettings", JSON.stringify(data));
+      
       toast({
         title: "Settings saved",
         description: "Your profile settings have been updated.",
       });
-      
-      // Update localStorage with the new settings
-      localStorage.setItem("userSettings", JSON.stringify(data));
-    }, 1000);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast({
+        variant: "destructive",
+        title: "Error saving settings",
+        description: "There was a problem saving your settings. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -142,6 +228,28 @@ export function ProfilePage() {
                     </FormControl>
                     <FormDescription>
                       Your overtime hourly pay rate
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="overtimeThreshold"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Overtime Threshold (hours)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min="1"
+                        step="1"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Hours after which overtime rate applies
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

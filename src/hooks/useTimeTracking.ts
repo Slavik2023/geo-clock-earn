@@ -19,6 +19,41 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
   const [overtimeThreshold, setOvertimeThreshold] = useState(8);
   const [locationDetails, setLocationDetails] = useState<LocationDetails | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Get current user and load user settings
+  useEffect(() => {
+    async function getUserAndSettings() {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        setUserId(data.user.id);
+        
+        // Load user settings
+        const { data: settings } = await supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .single();
+        
+        if (settings) {
+          setHourlyRate(settings.hourly_rate || 25);
+          setOvertimeRate(settings.overtime_rate || 37.5);
+          setOvertimeThreshold(settings.overtime_threshold || 8);
+        } else {
+          // Try to load from localStorage if no settings in database
+          const savedSettings = localStorage.getItem("userSettings");
+          if (savedSettings) {
+            const parsedSettings = JSON.parse(savedSettings);
+            setHourlyRate(parsedSettings.hourlyRate || 25);
+            setOvertimeRate(parsedSettings.overtimeRate || 37.5);
+            setOvertimeThreshold(parsedSettings.overtimeThreshold || 8);
+          }
+        }
+      }
+    }
+    
+    getUserAndSettings();
+  }, []);
 
   // Load active timer from localStorage
   useEffect(() => {
@@ -57,6 +92,15 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
   };
 
   const handleToggleTimer = async () => {
+    if (!userId) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "You must be signed in to track time."
+      });
+      return;
+    }
+    
     if (!isLocationVerified && !isTracking) {
       toast({
         variant: "destructive",
@@ -81,31 +125,35 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
         
         // Create a new session in the database
         if (locationDetails) {
-          const user = (await supabase.auth.getUser()).data.user;
+          const sessionData = {
+            user_id: userId,
+            location_id: locationDetails.id,
+            start_time: now.toISOString(),
+            hourly_rate: locationDetails.hourly_rate || hourlyRate,
+            address: locationDetails.address,
+            latitude: locationDetails.latitude,
+            longitude: locationDetails.longitude,
+            is_manual_entry: !locationDetails.id // If no location ID, it's a manual entry
+          };
           
-          if (user) {
-            const sessionData = {
-              user_id: user.id,
-              location_id: locationDetails.id,
-              start_time: now.toISOString(),
-              hourly_rate: locationDetails.hourly_rate,
-              address: locationDetails.address,
-              latitude: locationDetails.latitude,
-              longitude: locationDetails.longitude,
-              is_manual_entry: !locationDetails.id // If no location ID, it's a manual entry
-            };
-            
-            const { data, error } = await supabase
-              .from("sessions")
-              .insert(sessionData)
-              .select();
-            
-            if (error) {
-              console.error("Error creating session:", error);
-            } else if (data && data[0]) {
-              setCurrentSessionId(data[0].id);
-              localStorage.setItem("activeSessionId", data[0].id);
-            }
+          console.log("Creating session with data:", sessionData);
+          
+          const { data, error } = await supabase
+            .from("sessions")
+            .insert(sessionData)
+            .select();
+          
+          if (error) {
+            console.error("Error creating session:", error);
+            toast({
+              variant: "destructive",
+              title: "Error Starting Timer",
+              description: error.message || "There was an error starting the timer."
+            });
+          } else if (data && data[0]) {
+            console.log("Session created successfully:", data[0]);
+            setCurrentSessionId(data[0].id);
+            localStorage.setItem("activeSessionId", data[0].id);
           }
         }
         
@@ -140,6 +188,11 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
           
           // Update the session in the database
           if (currentSessionId) {
+            console.log("Updating session with ID:", currentSessionId, {
+              end_time: now.toISOString(),
+              earnings: totalEarnings
+            });
+            
             const { error } = await supabase
               .from("sessions")
               .update({
@@ -150,6 +203,13 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
             
             if (error) {
               console.error("Error updating session:", error);
+              toast({
+                variant: "destructive",
+                title: "Error Stopping Timer",
+                description: error.message || "There was an error stopping the timer."
+              });
+            } else {
+              console.log("Session updated successfully");
             }
           }
           
