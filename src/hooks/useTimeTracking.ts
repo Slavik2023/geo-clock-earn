@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, UserSettings } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { LocationDetails } from "@/components/time-tracker/EnhancedLocationCheck";
 
@@ -37,8 +37,8 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
         
         if (settingsData) {
           setHourlyRate(settingsData.hourly_rate);
-          setOvertimeRate(settingsData.overtime_rate);
-          setOvertimeThreshold(settingsData.overtime_threshold);
+          setOvertimeRate(settingsData.overtime_rate || 37.5);
+          setOvertimeThreshold(settingsData.overtime_threshold || 8);
         }
         
         if (error) {

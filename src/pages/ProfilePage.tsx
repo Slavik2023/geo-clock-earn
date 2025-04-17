@@ -1,316 +1,208 @@
 
 import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
+import { supabase, UserSettings, UserSettingsUpdate } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { MapPin } from "lucide-react";
-import { LocationsManager } from "@/components/time-tracker/LocationsManager";
-import { supabase } from "@/integrations/supabase/client";
-
-const profileFormSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  hourlyRate: z.coerce.number().min(1, { message: "Hourly rate must be at least $1." }),
-  overtimeRate: z.coerce.number().min(1, { message: "Overtime rate must be at least $1." }),
-  overtimeThreshold: z.coerce.number().min(1, { message: "Overtime threshold must be at least 1 hour." }),
-  enableLocationVerification: z.boolean().default(true),
-  enableOvertimeCalculation: z.boolean().default(true),
-});
-
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 export function ProfilePage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-
-  // Get current user when component mounts
+  const [userSettingsId, setUserSettingsId] = useState<string | null>(null);
+  
+  // User profile settings
+  const [name, setName] = useState('');
+  const [hourlyRate, setHourlyRate] = useState(25);
+  const [overtimeRate, setOvertimeRate] = useState(37.5);
+  const [overtimeThreshold, setOvertimeThreshold] = useState(8);
+  const [enableLocationVerification, setEnableLocationVerification] = useState(true);
+  const [enableOvertimeCalculation, setEnableOvertimeCalculation] = useState(true);
+  
+  // Load user settings from Supabase
   useEffect(() => {
-    async function getCurrentUser() {
-      const { data } = await supabase.auth.getUser();
-      if (data.user) {
-        setUserId(data.user.id);
-        await loadUserSettings(data.user.id);
+    async function loadUserSettings() {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+          toast({
+            title: "Authentication Required",
+            description: "Please sign in to access your profile",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        setUserId(userData.user.id);
+        
+        const { data: settingsData, error } = await supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', userData.user.id)
+          .maybeSingle();
+        
+        if (error) {
+          console.error("Error loading settings:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load settings",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        if (settingsData) {
+          setName(settingsData.name || '');
+          setHourlyRate(settingsData.hourly_rate);
+          setOvertimeRate(settingsData.overtime_rate || 37.5);
+          setOvertimeThreshold(settingsData.overtime_threshold || 8);
+          setEnableLocationVerification(settingsData.enable_location_verification ?? true);
+          setEnableOvertimeCalculation(settingsData.enable_overtime_calculation ?? true);
+          setUserSettingsId(settingsData.id);
+        }
+      } catch (error) {
+        console.error("Error in profile page:", error);
       }
     }
     
-    getCurrentUser();
-  }, []);
-
-  // Load user settings from Supabase
-  const loadUserSettings = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (error) {
-        console.error("Error loading user settings:", error);
-        return;
-      }
-
-      if (data) {
-        form.reset({
-          name: data.name || "John Doe",
-          hourlyRate: data.hourly_rate,
-          overtimeRate: data.overtime_rate,
-          overtimeThreshold: data.overtime_threshold,
-          enableLocationVerification: data.enable_location_verification,
-          enableOvertimeCalculation: data.enable_overtime_calculation,
-        });
-      }
-    } catch (error) {
-      console.error("Error loading user settings:", error);
+    loadUserSettings();
+  }, [toast]);
+  
+  const handleSaveSettings = async () => {
+    if (!userId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to save your settings",
+        variant: "destructive"
+      });
+      return;
     }
-  };
-
-  // Default values for the form
-  const defaultValues: Partial<ProfileFormValues> = {
-    name: "John Doe",
-    hourlyRate: 25,
-    overtimeRate: 37.5,
-    overtimeThreshold: 8,
-    enableLocationVerification: true,
-    enableOvertimeCalculation: true,
-  };
-
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileFormSchema),
-    defaultValues,
-  });
-
-  async function onSubmit(formData: ProfileFormValues) {
+    
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: userId!,
-          name: formData.name,
-          hourly_rate: formData.hourlyRate,
-          overtime_rate: formData.overtimeRate,
-          overtime_threshold: formData.overtimeThreshold,
-          enable_location_verification: formData.enableLocationVerification,
-          enable_overtime_calculation: formData.enableOvertimeCalculation,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
+      const settingsData: UserSettingsUpdate = {
+        user_id: userId,
+        name,
+        hourly_rate: hourlyRate,
+        overtime_rate: overtimeRate,
+        overtime_threshold: overtimeThreshold,
+        enable_location_verification: enableLocationVerification,
+        enable_overtime_calculation: enableOvertimeCalculation,
+        updated_at: new Date().toISOString()
+      };
+      
+      let result;
+      
+      if (userSettingsId) {
+        // Update existing settings
+        result = await supabase
+          .from('user_settings')
+          .update(settingsData)
+          .eq('id', userSettingsId);
+      } else {
+        // Insert new settings
+        result = await supabase
+          .from('user_settings')
+          .insert(settingsData);
       }
-
+      
+      if (result.error) {
+        throw result.error;
+      }
+      
       toast({
-        title: "Settings saved",
-        description: "Your profile settings have been updated.",
+        title: "Settings Saved",
+        description: "Your profile settings have been updated successfully"
       });
     } catch (error) {
       console.error("Error saving settings:", error);
       toast({
-        variant: "destructive",
-        title: "Error saving settings",
-        description: "There was a problem saving your settings. Please try again.",
+        title: "Save Failed",
+        description: "There was an error saving your settings",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
-  }
-
+  };
+  
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Profile & Settings</h2>
-        <p className="text-muted-foreground">
-          Manage your account and preferences
-        </p>
-      </div>
-
       <Card>
         <CardHeader>
-          <CardTitle>User Information</CardTitle>
-          <CardDescription>
-            Update your personal information and work preferences
-          </CardDescription>
+          <CardTitle>Profile Settings</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="hourlyRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Default Hourly Rate ($)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="1"
-                        step="0.01"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Your standard hourly pay rate (when no location specified)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="overtimeRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Overtime Rate ($)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="1"
-                        step="0.01"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Your overtime hourly pay rate
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="overtimeThreshold"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Overtime Threshold (hours)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="1"
-                        step="1"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Hours after which overtime rate applies
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="enableLocationVerification"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">
-                        Location Verification
-                      </FormLabel>
-                      <FormDescription>
-                        Require location verification for time tracking
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="enableOvertimeCalculation"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">
-                        Overtime Calculation
-                      </FormLabel>
-                      <FormDescription>
-                        Automatically calculate overtime rates
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              <Button type="submit" disabled={isLoading} className="w-full">
-                {isLoading ? "Saving..." : "Save Changes"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <MapPin className="h-5 w-5 mr-2" />
-            Saved Locations
-          </CardTitle>
-          <CardDescription>
-            Manage your work locations and hourly rates
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LocationsManager />
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>App Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Version</span>
-            <span>1.0.0</span>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Display Name</Label>
+            <Input 
+              id="name" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="Your name"
+            />
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Last Updated</span>
-            <span>{new Date().toLocaleDateString()}</span>
+          
+          <div className="space-y-2">
+            <Label htmlFor="hourlyRate">Default Hourly Rate ($)</Label>
+            <Input 
+              id="hourlyRate" 
+              type="number" 
+              value={hourlyRate} 
+              onChange={(e) => setHourlyRate(parseFloat(e.target.value))} 
+            />
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="overtimeRate">Overtime Rate ($)</Label>
+            <Input 
+              id="overtimeRate" 
+              type="number" 
+              value={overtimeRate} 
+              onChange={(e) => setOvertimeRate(parseFloat(e.target.value))} 
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="overtimeThreshold">Overtime Threshold (hours)</Label>
+            <Input 
+              id="overtimeThreshold" 
+              type="number" 
+              value={overtimeThreshold} 
+              onChange={(e) => setOvertimeThreshold(parseInt(e.target.value))} 
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <Label htmlFor="locationVerification">Enable Location Verification</Label>
+            <Switch 
+              id="locationVerification" 
+              checked={enableLocationVerification}
+              onCheckedChange={setEnableLocationVerification}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <Label htmlFor="overtimeCalculation">Enable Overtime Calculation</Label>
+            <Switch 
+              id="overtimeCalculation" 
+              checked={enableOvertimeCalculation}
+              onCheckedChange={setEnableOvertimeCalculation}
+            />
+          </div>
+          
+          <Button 
+            className="w-full mt-4" 
+            onClick={handleSaveSettings}
+            disabled={isLoading}
+          >
+            {isLoading ? "Saving..." : "Save Settings"}
+          </Button>
         </CardContent>
-        <CardFooter>
-          <p className="text-sm text-muted-foreground">
-            © 2025 WorkTime Tracker. All rights reserved.
-          </p>
-        </CardFooter>
       </Card>
     </div>
   );
