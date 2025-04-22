@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           address: string
@@ -123,6 +156,42 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string | null
+          id: string
+          payment_method: string | null
+          status: string
+          stripe_payment_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          payment_method?: string | null
+          status: string
+          stripe_payment_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          payment_method?: string | null
+          status?: string
+          stripe_payment_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           created_at: string | null
@@ -234,6 +303,48 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          features: Json | null
+          id: string
+          interval: string | null
+          is_active: boolean | null
+          name: string
+          price: number
+          stripe_price_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          interval?: string | null
+          is_active?: boolean | null
+          name: string
+          price: number
+          stripe_price_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          interval?: string | null
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          stripe_price_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           id: string
@@ -299,10 +410,13 @@ export type Database = {
           enable_overtime_calculation: boolean | null
           hourly_rate: number
           id: string
+          is_admin: boolean | null
           name: string | null
           overtime_rate: number | null
           overtime_threshold: number | null
           role: string | null
+          subscription_end_date: string | null
+          subscription_status: string | null
           updated_at: string | null
           user_id: string
         }
@@ -311,10 +425,13 @@ export type Database = {
           enable_overtime_calculation?: boolean | null
           hourly_rate?: number
           id?: string
+          is_admin?: boolean | null
           name?: string | null
           overtime_rate?: number | null
           overtime_threshold?: number | null
           role?: string | null
+          subscription_end_date?: string | null
+          subscription_status?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -323,10 +440,13 @@ export type Database = {
           enable_overtime_calculation?: boolean | null
           hourly_rate?: number
           id?: string
+          is_admin?: boolean | null
           name?: string | null
           overtime_rate?: number | null
           overtime_threshold?: number | null
           role?: string | null
+          subscription_end_date?: string | null
+          subscription_status?: string | null
           updated_at?: string | null
           user_id?: string
         }

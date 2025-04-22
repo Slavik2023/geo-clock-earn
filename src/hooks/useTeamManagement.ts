@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -18,17 +18,51 @@ export interface TeamMember {
   joined_at: string;
 }
 
+interface AddMemberParams {
+  teamId: string;
+  email: string;
+  role: string;
+}
+
 export function useTeamManagement() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Check if user has admin privileges
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
+
+      const { data: userSettings, error: settingsError } = await supabase
+        .from('user_settings')
+        .select('is_admin')
+        .eq('user_id', userData.user.id)
+        .single();
+
+      if (!settingsError && userSettings) {
+        setIsAdmin(userSettings.is_admin || false);
+      }
+
+      // Fetch teams the user is a member of
+      const { data: memberData, error: memberError } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', userData.user.id);
+
+      if (memberError) throw memberError;
+      
+      const teamIds = memberData?.map(member => member.team_id) || [];
+      
+      // Fetch teams data
       const { data: teamData, error: teamsError } = await supabase
         .from('teams')
-        .select('*');
+        .select('*')
+        .in('id', teamIds.length > 0 ? teamIds : ['00000000-0000-0000-0000-000000000000']); // Use a dummy UUID if no teams
 
       if (teamsError) throw teamsError;
       setTeams(teamData || []);
@@ -42,7 +76,7 @@ export function useTeamManagement() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   const createTeam = async (companyName: string) => {
     try {
@@ -54,6 +88,7 @@ export function useTeamManagement() {
         .insert({
           company_name: companyName,
           created_by: userData.user.id,
+          subscription_plan: 'free',
         })
         .select()
         .single();
@@ -71,6 +106,17 @@ export function useTeamManagement() {
 
       if (memberError) throw memberError;
 
+      // Log the action in audit_logs
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userData.user.id,
+          action: 'create_team',
+          entity_type: 'teams',
+          entity_id: data.id,
+          details: { team_name: companyName }
+        });
+
       await fetchTeams();
       toast({
         title: 'Success',
@@ -86,14 +132,272 @@ export function useTeamManagement() {
     }
   };
 
+  const fetchTeamMembers = useCallback(async (teamId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .eq('team_id', teamId);
+
+      if (error) throw error;
+      setTeamMembers(data || []);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load team members',
+        variant: 'destructive',
+      });
+    }
+  }, [toast]);
+
+  const addTeamMember = async ({ teamId, email, role }: AddMemberParams) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
+
+      // Check if user has admin rights for this team
+      const { data: teamMemberData, error: teamMemberError } = await supabase
+        .from('team_members')
+        .select('role')
+        .eq('team_id', teamId)
+        .eq('user_id', userData.user.id)
+        .single();
+
+      if (teamMemberError) throw new Error('You do not have permission to add members to this team');
+      if (teamMemberData.role !== 'admin' && !isAdmin) {
+        throw new Error('You need admin privileges to add team members');
+      }
+
+      // Find user by email
+      const { data: userByEmail, error: userError } = await supabase
+        .from('user_settings')
+        .select('user_id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (userError) throw userError;
+      
+      if (!userByEmail) {
+        // TODO: Send invitation email if user doesn't exist
+        toast({
+          title: 'User not found',
+          description: 'User with this email is not registered in the system',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      // Add user to team
+      const { error: insertError } = await supabase
+        .from('team_members')
+        .insert({
+          user_id: userByEmail.user_id,
+          team_id: teamId,
+          role: role,
+        });
+
+      if (insertError) throw insertError;
+
+      // Log the action
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userData.user.id,
+          action: 'add_team_member',
+          entity_type: 'team_members',
+          entity_id: teamId,
+          details: { member_email: email, role: role }
+        });
+
+      await fetchTeamMembers(teamId);
+      return true;
+    } catch (error) {
+      console.error('Error adding team member:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to add team member',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
+  const removeTeamMember = async (teamId: string, memberId: string) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
+
+      // Check if user has admin rights for this team
+      const { data: teamMemberData, error: teamMemberError } = await supabase
+        .from('team_members')
+        .select('role')
+        .eq('team_id', teamId)
+        .eq('user_id', userData.user.id)
+        .single();
+
+      if (teamMemberError) throw new Error('You do not have permission to remove members from this team');
+      if (teamMemberData.role !== 'admin' && !isAdmin) {
+        throw new Error('You need admin privileges to remove team members');
+      }
+
+      // Get the member details before removing
+      const { data: memberData, error: getMemberError } = await supabase
+        .from('team_members')
+        .select('user_id')
+        .eq('id', memberId)
+        .single();
+
+      if (getMemberError) throw getMemberError;
+
+      // Delete team member
+      const { error: deleteError } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('id', memberId);
+
+      if (deleteError) throw deleteError;
+
+      // Log the action
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userData.user.id,
+          action: 'remove_team_member',
+          entity_type: 'team_members',
+          entity_id: teamId,
+          details: { removed_user_id: memberData.user_id }
+        });
+
+      await fetchTeamMembers(teamId);
+      
+      toast({
+        title: 'Success',
+        description: 'Team member removed successfully',
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error removing team member:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to remove team member',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
+  const upgradeSubscription = async (teamId: string) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
+
+      // In a real implementation, this would redirect to Stripe payment
+      // For now, we'll simulate a successful payment
+
+      // Update team subscription
+      const { error: updateError } = await supabase
+        .from('teams')
+        .update({
+          subscription_plan: 'premium',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', teamId);
+
+      if (updateError) throw updateError;
+
+      // Create a payment record
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          user_id: userData.user.id,
+          amount: 5,
+          status: 'success',
+          payment_method: 'credit_card',
+        });
+
+      if (paymentError) throw paymentError;
+
+      // Log the action
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userData.user.id,
+          action: 'upgrade_subscription',
+          entity_type: 'teams',
+          entity_id: teamId,
+          details: { plan: 'premium', amount: 5 }
+        });
+
+      await fetchTeams();
+      return true;
+    } catch (error) {
+      console.error('Error upgrading subscription:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upgrade subscription',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
+  const cancelSubscription = async (teamId: string) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
+
+      // Update team subscription
+      const { error: updateError } = await supabase
+        .from('teams')
+        .update({
+          subscription_plan: 'free',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', teamId);
+
+      if (updateError) throw updateError;
+
+      // Log the action
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userData.user.id,
+          action: 'cancel_subscription',
+          entity_type: 'teams',
+          entity_id: teamId,
+          details: { previous_plan: 'premium' }
+        });
+
+      await fetchTeams();
+      return true;
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to cancel subscription',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchTeams();
-  }, []);
+  }, [fetchTeams]);
 
   return {
     teams,
+    teamMembers,
     isLoading,
+    isAdmin,
     createTeam,
     fetchTeams,
+    fetchTeamMembers,
+    addTeamMember,
+    removeTeamMember,
+    upgradeSubscription,
+    cancelSubscription
   };
 }
