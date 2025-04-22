@@ -15,10 +15,13 @@ export type Database = {
           created_at: string | null
           hourly_rate: number
           id: string
+          is_corporate: boolean | null
           latitude: number | null
           longitude: number | null
           name: string
+          project_id: string | null
           radius: number | null
+          team_id: string | null
           user_id: string
           zip_code: string | null
         }
@@ -27,10 +30,13 @@ export type Database = {
           created_at?: string | null
           hourly_rate: number
           id?: string
+          is_corporate?: boolean | null
           latitude?: number | null
           longitude?: number | null
           name: string
+          project_id?: string | null
           radius?: number | null
+          team_id?: string | null
           user_id: string
           zip_code?: string | null
         }
@@ -39,14 +45,121 @@ export type Database = {
           created_at?: string | null
           hourly_rate?: number
           id?: string
+          is_corporate?: boolean | null
           latitude?: number | null
           longitude?: number | null
           name?: string
+          project_id?: string | null
           radius?: number | null
+          team_id?: string | null
           user_id?: string
           zip_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "locations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_periods: {
+        Row: {
+          duration_minutes: number | null
+          earnings: number | null
+          end_time: string | null
+          id: string
+          overtime_rate: number
+          session_id: string
+          start_time: string
+          team_id: string | null
+          user_id: string
+        }
+        Insert: {
+          duration_minutes?: number | null
+          earnings?: number | null
+          end_time?: string | null
+          id?: string
+          overtime_rate: number
+          session_id: string
+          start_time: string
+          team_id?: string | null
+          user_id: string
+        }
+        Update: {
+          duration_minutes?: number | null
+          earnings?: number | null
+          end_time?: string | null
+          id?: string
+          overtime_rate?: number
+          session_id?: string
+          start_time?: string
+          team_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_periods_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_periods_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          team_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          team_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          team_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sessions: {
         Row: {
@@ -60,7 +173,9 @@ export type Database = {
           latitude: number | null
           location_id: string | null
           longitude: number | null
+          project_id: string | null
           start_time: string
+          team_id: string | null
           user_id: string
         }
         Insert: {
@@ -74,7 +189,9 @@ export type Database = {
           latitude?: number | null
           location_id?: string | null
           longitude?: number | null
+          project_id?: string | null
           start_time: string
+          team_id?: string | null
           user_id: string
         }
         Update: {
@@ -88,7 +205,9 @@ export type Database = {
           latitude?: number | null
           location_id?: string | null
           longitude?: number | null
+          project_id?: string | null
           start_time?: string
+          team_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -99,7 +218,80 @@ export type Database = {
             referencedRelation: "locations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sessions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      team_members: {
+        Row: {
+          id: string
+          joined_at: string | null
+          role: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          role?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          role?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          company_name: string
+          created_at: string | null
+          created_by: string
+          id: string
+          subscription_plan: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_name: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          subscription_plan?: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_name?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          subscription_plan?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       user_settings: {
         Row: {
@@ -110,6 +302,7 @@ export type Database = {
           name: string | null
           overtime_rate: number | null
           overtime_threshold: number | null
+          role: string | null
           updated_at: string | null
           user_id: string
         }
@@ -121,6 +314,7 @@ export type Database = {
           name?: string | null
           overtime_rate?: number | null
           overtime_threshold?: number | null
+          role?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -132,6 +326,7 @@ export type Database = {
           name?: string | null
           overtime_rate?: number | null
           overtime_threshold?: number | null
+          role?: string | null
           updated_at?: string | null
           user_id?: string
         }

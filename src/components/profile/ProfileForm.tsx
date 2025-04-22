@@ -1,9 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PersonalDetails } from "./PersonalDetails";
 import { RateSettings } from "./RateSettings";
 import { FeatureToggles } from "./FeatureToggles";
+import { TeamManagement } from "./TeamManagement";
 
 interface ProfileFormProps {
   isLoading: boolean;
@@ -39,40 +39,51 @@ export function ProfileForm({
   onSave
 }: ProfileFormProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Profile Settings</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <PersonalDetails 
-          name={name} 
-          setName={setName} 
-        />
-        
-        <RateSettings 
-          hourlyRate={hourlyRate}
-          setHourlyRate={setHourlyRate}
-          overtimeRate={overtimeRate}
-          setOvertimeRate={setOvertimeRate}
-          overtimeThreshold={overtimeThreshold}
-          setOvertimeThreshold={setOvertimeThreshold}
-        />
-        
-        <FeatureToggles 
-          enableLocationVerification={enableLocationVerification}
-          setEnableLocationVerification={setEnableLocationVerification}
-          enableOvertimeCalculation={enableOvertimeCalculation}
-          setEnableOvertimeCalculation={setEnableOvertimeCalculation}
-        />
-        
-        <Button 
-          className="w-full mt-4" 
-          onClick={onSave}
-          disabled={isLoading}
-        >
-          {isLoading ? "Saving..." : "Save Settings"}
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <PersonalDetails 
+            name={name} 
+            setName={setName} 
+          />
+          
+          <RateSettings 
+            hourlyRate={hourlyRate}
+            setHourlyRate={setHourlyRate}
+            overtimeRate={overtimeRate}
+            setOvertimeRate={setOvertimeRate}
+            overtimeThreshold={overtimeThreshold}
+            setOvertimeThreshold={setOvertimeThreshold}
+          />
+          
+          <FeatureToggles 
+            enableLocationVerification={enableLocationVerification}
+            setEnableLocationVerification={setEnableLocationVerification}
+            enableOvertimeCalculation={enableOvertimeCalculation}
+            setEnableOvertimeCalculation={setEnableOvertimeCalculation}
+          />
+          
+          <Button 
+            className="w-full mt-4" 
+            onClick={onSave}
+            disabled={isLoading}
+          >
+            {isLoading ? "Saving..." : "Save Settings"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Team Management</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TeamManagement />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
