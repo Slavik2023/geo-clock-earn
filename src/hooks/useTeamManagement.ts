@@ -166,10 +166,10 @@ export function useTeamManagement() {
         .select('role')
         .eq('team_id', teamId)
         .eq('user_id', userData.user.id)
-        .single();
+        .maybeSingle();
 
       if (teamMemberError) throw new Error('You do not have permission to add members to this team');
-      if (teamMemberData.role !== 'admin' && !isAdmin) {
+      if (!teamMemberData || (teamMemberData.role !== 'admin' && !isAdmin)) {
         throw new Error('You need admin privileges to add team members');
       }
 
