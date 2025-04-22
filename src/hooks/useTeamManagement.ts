@@ -42,7 +42,7 @@ export function useTeamManagement() {
         .from('user_settings')
         .select('is_admin')
         .eq('user_id', userData.user.id)
-        .single();
+        .maybeSingle();
 
       if (!settingsError && userSettings) {
         setIsAdmin(userSettings.is_admin || false);
@@ -56,9 +56,10 @@ export function useTeamManagement() {
 
       if (memberError) throw memberError;
       
+      // Get unique team IDs
       const teamIds = memberData?.map(member => member.team_id) || [];
       
-      // Fetch teams data
+      // If user is a member of teams, fetch those teams
       if (teamIds.length > 0) {
         const { data: teamData, error: teamsError } = await supabase
           .from('teams')
@@ -87,6 +88,7 @@ export function useTeamManagement() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
+      // Insert the new team
       const { data, error } = await supabase
         .from('teams')
         .insert({
@@ -155,21 +157,33 @@ export function useTeamManagement() {
     }
   }, [toast]);
 
+  // Used to check if user has admin rights for a team
+  const checkTeamAdminRights = async (teamId: string, userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('role')
+        .eq('team_id', teamId)
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (error) return false;
+      
+      // User either needs to be a team admin or system admin
+      return data && (data.role === 'admin' || isAdmin);
+    } catch {
+      return false;
+    }
+  };
+
   const addTeamMember = async ({ teamId, email, role }: AddMemberParams) => {
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      // Check if user has admin rights for this team
-      const { data: teamMemberData, error: teamMemberError } = await supabase
-        .from('team_members')
-        .select('role')
-        .eq('team_id', teamId)
-        .eq('user_id', userData.user.id)
-        .maybeSingle();
-
-      if (teamMemberError) throw new Error('You do not have permission to add members to this team');
-      if (!teamMemberData || (teamMemberData.role !== 'admin' && !isAdmin)) {
+      // Check admin rights
+      const hasAdminRights = await checkTeamAdminRights(teamId, userData.user.id);
+      if (!hasAdminRights) {
         throw new Error('You need admin privileges to add team members');
       }
 
@@ -232,16 +246,9 @@ export function useTeamManagement() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      // Check if user has admin rights for this team
-      const { data: teamMemberData, error: teamMemberError } = await supabase
-        .from('team_members')
-        .select('role')
-        .eq('team_id', teamId)
-        .eq('user_id', userData.user.id)
-        .single();
-
-      if (teamMemberError) throw new Error('You do not have permission to remove members from this team');
-      if (teamMemberData.role !== 'admin' && !isAdmin) {
+      // Check admin rights
+      const hasAdminRights = await checkTeamAdminRights(teamId, userData.user.id);
+      if (!hasAdminRights) {
         throw new Error('You need admin privileges to remove team members');
       }
 
@@ -250,9 +257,10 @@ export function useTeamManagement() {
         .from('team_members')
         .select('user_id')
         .eq('id', memberId)
-        .single();
+        .maybeSingle();
 
       if (getMemberError) throw getMemberError;
+      if (!memberData) throw new Error('Team member not found');
 
       // Delete team member
       const { error: deleteError } = await supabase
