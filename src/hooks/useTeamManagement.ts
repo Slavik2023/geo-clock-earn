@@ -59,13 +59,17 @@ export function useTeamManagement() {
       const teamIds = memberData?.map(member => member.team_id) || [];
       
       // Fetch teams data
-      const { data: teamData, error: teamsError } = await supabase
-        .from('teams')
-        .select('*')
-        .in('id', teamIds.length > 0 ? teamIds : ['00000000-0000-0000-0000-000000000000']); // Use a dummy UUID if no teams
+      if (teamIds.length > 0) {
+        const { data: teamData, error: teamsError } = await supabase
+          .from('teams')
+          .select('*')
+          .in('id', teamIds);
 
-      if (teamsError) throw teamsError;
-      setTeams(teamData || []);
+        if (teamsError) throw teamsError;
+        setTeams(teamData || []);
+      } else {
+        setTeams([]);
+      }
     } catch (error) {
       console.error('Error fetching teams:', error);
       toast({
