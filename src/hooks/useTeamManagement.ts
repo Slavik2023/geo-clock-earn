@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -38,6 +37,7 @@ export function useTeamManagement() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
+      // Get user settings to determine admin status
       const { data: userSettings, error: settingsError } = await supabase
         .from('user_settings')
         .select('is_admin')
@@ -160,17 +160,17 @@ export function useTeamManagement() {
   // Used to check if user has admin rights for a team
   const checkTeamAdminRights = async (teamId: string, userId: string) => {
     try {
+      // Using a different approach to avoid deep type instantiation issues
       const { data, error } = await supabase
         .from('team_members')
         .select('role')
         .eq('team_id', teamId)
-        .eq('user_id', userId)
-        .maybeSingle();
+        .eq('user_id', userId);
       
-      if (error) return false;
+      if (error || !data || data.length === 0) return false;
       
       // User either needs to be a team admin or system admin
-      return data && (data.role === 'admin' || isAdmin);
+      return data[0]?.role === 'admin' || isAdmin;
     } catch {
       return false;
     }
@@ -191,12 +191,11 @@ export function useTeamManagement() {
       const { data: userByEmail, error: userError } = await supabase
         .from('user_settings')
         .select('user_id')
-        .eq('email', email)
-        .maybeSingle();
+        .eq('email', email);
 
       if (userError) throw userError;
       
-      if (!userByEmail) {
+      if (!userByEmail || userByEmail.length === 0) {
         // TODO: Send invitation email if user doesn't exist
         toast({
           title: 'User not found',
@@ -210,7 +209,7 @@ export function useTeamManagement() {
       const { error: insertError } = await supabase
         .from('team_members')
         .insert({
-          user_id: userByEmail.user_id,
+          user_id: userByEmail[0].user_id,
           team_id: teamId,
           role: role,
         });
@@ -256,11 +255,10 @@ export function useTeamManagement() {
       const { data: memberData, error: getMemberError } = await supabase
         .from('team_members')
         .select('user_id')
-        .eq('id', memberId)
-        .maybeSingle();
+        .eq('id', memberId);
 
       if (getMemberError) throw getMemberError;
-      if (!memberData) throw new Error('Team member not found');
+      if (!memberData || memberData.length === 0) throw new Error('Team member not found');
 
       // Delete team member
       const { error: deleteError } = await supabase
@@ -278,7 +276,7 @@ export function useTeamManagement() {
           action: 'remove_team_member',
           entity_type: 'team_members',
           entity_id: teamId,
-          details: { removed_user_id: memberData.user_id }
+          details: { removed_user_id: memberData[0].user_id }
         });
 
       await fetchTeamMembers(teamId);
