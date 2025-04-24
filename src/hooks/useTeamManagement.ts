@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -41,11 +42,10 @@ export function useTeamManagement() {
       const { data: userSettings, error: settingsError } = await supabase
         .from('user_settings')
         .select('is_admin')
-        .eq('user_id', userData.user.id)
-        .maybeSingle();
+        .eq('user_id', userData.user.id);
 
-      if (!settingsError && userSettings) {
-        setIsAdmin(userSettings.is_admin || false);
+      if (!settingsError && userSettings && userSettings.length > 0) {
+        setIsAdmin(userSettings[0].is_admin || false);
       }
 
       // Fetch teams the user is a member of
@@ -187,15 +187,15 @@ export function useTeamManagement() {
         throw new Error('You need admin privileges to add team members');
       }
 
-      // Find user by email
-      const { data: userByEmail, error: userError } = await supabase
+      // Find user by email - avoiding the problematic query pattern
+      const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
         .eq('email', email);
 
-      if (userError) throw userError;
+      if (error) throw error;
       
-      if (!userByEmail || userByEmail.length === 0) {
+      if (!data || data.length === 0) {
         // TODO: Send invitation email if user doesn't exist
         toast({
           title: 'User not found',
@@ -209,7 +209,7 @@ export function useTeamManagement() {
       const { error: insertError } = await supabase
         .from('team_members')
         .insert({
-          user_id: userByEmail[0].user_id,
+          user_id: data[0].user_id,
           team_id: teamId,
           role: role,
         });
