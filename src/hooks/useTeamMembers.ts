@@ -17,6 +17,10 @@ interface AddMemberParams {
   role: string;
 }
 
+interface UserSettingsResult {
+  user_id: string;
+}
+
 export function useTeamMembers() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const { toast } = useToast();
@@ -72,7 +76,8 @@ export function useTeamMembers() {
         throw new Error('You need admin privileges to add team members');
       }
 
-      const { data, error } = await supabase
+      // Fix for the TypeScript error - explicitly type the query result
+      const { data, error }: { data: UserSettingsResult[] | null; error: any } = await supabase
         .from('user_settings')
         .select('user_id')
         .eq('email', email);
