@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -137,6 +136,73 @@ export function useUserSettings() {
     }
   };
   
+  const createSuperAdminProfile = async () => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to create a superadmin profile",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      const userId = userData.user.id;
+      
+      const { error: settingsError } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: userId,
+          name: 'Super Admin',
+          is_admin: true,
+          role: 'admin',
+          subscription_status: 'premium',
+          hourly_rate: 100,
+          overtime_rate: 37.5,
+          overtime_threshold: 8,
+          enable_location_verification: true,
+          enable_overtime_calculation: true
+        }, {
+          onConflict: 'user_id'
+        });
+      
+      if (settingsError) {
+        console.error('Error creating superadmin profile:', settingsError);
+        toast({
+          title: "Error",
+          description: "Failed to create superadmin profile",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: userId,
+          action: 'create_superadmin',
+          entity_type: 'user_settings',
+          details: { role: 'admin', is_admin: true }
+        });
+      
+      toast({
+        title: "Success",
+        description: "Superadmin profile created successfully",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   return {
     isLoading,
     name,
@@ -151,6 +217,7 @@ export function useUserSettings() {
     setEnableLocationVerification,
     enableOvertimeCalculation,
     setEnableOvertimeCalculation,
-    saveSettings
+    saveSettings,
+    createSuperAdminProfile
   };
 }
