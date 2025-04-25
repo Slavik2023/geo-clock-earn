@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -194,16 +193,16 @@ export function useTeamManagement() {
         throw new Error('You need admin privileges to add team members');
       }
 
-      // Manually typed query to avoid excessive type instantiation
-      const result = await supabase
+      // Use a plain SQL query to avoid TypeScript type instantiation issues
+      const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
         .eq('email', email);
-        
-      const userByEmail = result.data as UserSettingsRow[] | null;
-      const userError = result.error;
+
+      if (error) throw error;
       
-      if (userError) throw userError;
+      // Explicitly type the result to avoid excessive type instantiation
+      const userByEmail = data as { user_id: string }[] | null;
       
       if (!userByEmail || userByEmail.length === 0) {
         // TODO: Send invitation email if user doesn't exist
