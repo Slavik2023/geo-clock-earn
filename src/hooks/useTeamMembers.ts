@@ -17,8 +17,10 @@ interface AddMemberParams {
   role: string;
 }
 
-interface UserSettingsResult {
+// Define a proper type for the user settings query result
+interface UserSettingsWithEmail {
   user_id: string;
+  email?: string;
 }
 
 export function useTeamMembers() {
@@ -76,11 +78,11 @@ export function useTeamMembers() {
         throw new Error('You need admin privileges to add team members');
       }
 
-      // Fix for the TypeScript error - explicitly type the query result
-      const { data, error }: { data: UserSettingsResult[] | null; error: any } = await supabase
+      // Explicitly type the query result to avoid deep type instantiation
+      const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
-        .eq('email', email);
+        .eq('email', email) as { data: UserSettingsWithEmail[] | null; error: any };
 
       if (error) throw error;
       

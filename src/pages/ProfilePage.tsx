@@ -1,4 +1,5 @@
 
+import { Button } from "@/components/ui/button";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 
@@ -17,7 +18,8 @@ export function ProfilePage() {
     setEnableLocationVerification,
     enableOvertimeCalculation,
     setEnableOvertimeCalculation,
-    saveSettings
+    saveSettings,
+    createSuperAdminProfile
   } = useUserSettings();
   
   return (
@@ -38,6 +40,16 @@ export function ProfilePage() {
         setEnableOvertimeCalculation={setEnableOvertimeCalculation}
         onSave={saveSettings}
       />
+      
+      <div className="mt-8">
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          onClick={createSuperAdminProfile}
+        >
+          Create Super Admin Profile
+        </Button>
+      </div>
     </div>
   );
 }
