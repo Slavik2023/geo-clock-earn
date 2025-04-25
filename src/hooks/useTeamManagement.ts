@@ -24,6 +24,13 @@ interface AddMemberParams {
   role: string;
 }
 
+// Define a more specific interface for user settings query results
+interface UserSettingsRow {
+  user_id: string;
+  is_admin?: boolean;
+  email?: string;
+}
+
 export function useTeamManagement() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -187,15 +194,18 @@ export function useTeamManagement() {
         throw new Error('You need admin privileges to add team members');
       }
 
-      // Find user by email - avoiding the problematic query pattern
-      const { data, error } = await supabase
+      // Manually typed query to avoid excessive type instantiation
+      const result = await supabase
         .from('user_settings')
         .select('user_id')
         .eq('email', email);
-
-      if (error) throw error;
+        
+      const userByEmail = result.data as UserSettingsRow[] | null;
+      const userError = result.error;
       
-      if (!data || data.length === 0) {
+      if (userError) throw userError;
+      
+      if (!userByEmail || userByEmail.length === 0) {
         // TODO: Send invitation email if user doesn't exist
         toast({
           title: 'User not found',
@@ -209,7 +219,7 @@ export function useTeamManagement() {
       const { error: insertError } = await supabase
         .from('team_members')
         .insert({
-          user_id: data[0].user_id,
+          user_id: userByEmail[0].user_id,
           team_id: teamId,
           role: role,
         });
