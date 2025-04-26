@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -15,12 +14,6 @@ interface AddMemberParams {
   teamId: string;
   email: string;
   role: string;
-}
-
-// Define a proper type for the user settings query result
-interface UserSettingsWithEmail {
-  user_id: string;
-  email?: string;
 }
 
 export function useTeamMembers() {
@@ -78,13 +71,11 @@ export function useTeamMembers() {
         throw new Error('You need admin privileges to add team members');
       }
 
-      // Use a type assertion to avoid the deep instantiation error
       const userQuery = await supabase
         .from('user_settings')
         .select('user_id')
         .eq('email', email);
-        
-      // Extract data and error from the query result
+      
       const { data, error } = userQuery;
 
       if (error) throw error;

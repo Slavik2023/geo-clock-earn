@@ -11,8 +11,41 @@ import { HistoryPage } from "@/pages/HistoryPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { AuthPage } from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
+
+// Защитный компонент для проверки авторизации
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setIsAuthenticated(!!data.session);
+    };
+    
+    checkAuth();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setIsAuthenticated(!!session);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+  
+  if (isAuthenticated === null) {
+    // Загрузка
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+  
+  return isAuthenticated ? <>{children}</> : <Navigate to="/auth" />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -22,7 +55,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/" element={<AppLayout />}>
+          <Route path="/" element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }>
             <Route index element={<HomePage />} />
             <Route path="tracker" element={<TrackerPage />} />
             <Route path="history" element={<HistoryPage />} />
