@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -71,12 +72,11 @@ export function useTeamMembers() {
         throw new Error('You need admin privileges to add team members');
       }
 
-      const userQuery = await supabase
+      // Split the query to avoid type instantiation issues
+      const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
         .eq('email', email);
-      
-      const { data, error } = userQuery;
 
       if (error) throw error;
       
