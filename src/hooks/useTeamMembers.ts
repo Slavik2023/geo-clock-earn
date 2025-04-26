@@ -72,11 +72,12 @@ export function useTeamMembers() {
         throw new Error('You need admin privileges to add team members');
       }
 
-      // Split the query to avoid type instantiation issues
+      // Fix for the type instantiation error by adding explicit type annotation
       const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
-        .eq('email', email);
+        .eq('email', email)
+        .returns<{ user_id: string }[]>();
 
       if (error) throw error;
       
@@ -135,7 +136,8 @@ export function useTeamMembers() {
       const { data: memberData, error: getMemberError } = await supabase
         .from('team_members')
         .select('user_id')
-        .eq('id', memberId);
+        .eq('id', memberId)
+        .returns<{ user_id: string }[]>(); // Adding explicit type annotation here too
 
       if (getMemberError) throw getMemberError;
       if (!memberData || memberData.length === 0) throw new Error('Team member not found');
