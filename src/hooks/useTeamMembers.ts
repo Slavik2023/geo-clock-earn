@@ -77,11 +77,12 @@ export function useTeamMembers() {
         user_id: string;
       }
       
-      // Use a generic parameter with the interface
+      // Explicitly type the query with returns<> to prevent deep type instantiation
       const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
-        .eq('email', email);
+        .eq('email', email)
+        .returns<UserSettingResult[]>();
 
       if (error) throw error;
       
@@ -142,11 +143,12 @@ export function useTeamMembers() {
         user_id: string;
       }
       
-      // Use a generic parameter with the interface
+      // Explicitly type the query with returns<> to prevent deep type instantiation
       const { data: memberData, error: getMemberError } = await supabase
         .from('team_members')
         .select('user_id')
-        .eq('id', memberId);
+        .eq('id', memberId)
+        .returns<MemberDataResult[]>();
 
       if (getMemberError) throw getMemberError;
       if (!memberData || memberData.length === 0) throw new Error('Team member not found');
