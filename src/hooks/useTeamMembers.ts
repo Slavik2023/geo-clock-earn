@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export interface TeamMember {
   id: string;
@@ -23,19 +23,31 @@ export function useTeamMembers() {
 
   const checkTeamAdminRights = async (teamId: string, userId: string) => {
     try {
+      // Define a simple interface for the query result
+      interface TeamMemberResult {
+        role: string;
+      }
+      
       const { data, error } = await supabase
         .from('team_members')
         .select('role')
         .eq('team_id', teamId)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .returns<TeamMemberResult[]>();
       
       if (error || !data || data.length === 0) return false;
+      
+      // Define a simple interface for the query result
+      interface UserSettingAdminResult {
+        is_admin: boolean;
+      }
       
       const { data: userSettings } = await supabase
         .from('user_settings')
         .select('is_admin')
         .eq('user_id', userId)
-        .single();
+        .single()
+        .returns<UserSettingAdminResult>();
       
       return data[0]?.role === 'admin' || userSettings?.is_admin;
     } catch {
@@ -77,7 +89,6 @@ export function useTeamMembers() {
         user_id: string;
       }
       
-      // Explicitly type the query with returns<> to prevent deep type instantiation
       const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
@@ -143,7 +154,6 @@ export function useTeamMembers() {
         user_id: string;
       }
       
-      // Explicitly type the query with returns<> to prevent deep type instantiation
       const { data: memberData, error: getMemberError } = await supabase
         .from('team_members')
         .select('user_id')
