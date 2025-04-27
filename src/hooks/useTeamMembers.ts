@@ -72,12 +72,16 @@ export function useTeamMembers() {
         throw new Error('You need admin privileges to add team members');
       }
 
-      type UserSettingsResult = { user_id: string }[];
+      // Define a simple interface for the query result
+      interface UserSettingResult {
+        user_id: string;
+      }
       
+      // Use a generic parameter with the interface
       const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
-        .eq('email', email) as { data: UserSettingsResult | null, error: any };
+        .eq('email', email);
 
       if (error) throw error;
       
@@ -133,12 +137,16 @@ export function useTeamMembers() {
         throw new Error('You need admin privileges to remove team members');
       }
 
-      type MemberDataResult = { user_id: string }[];
+      // Define a simple interface for the query result
+      interface MemberDataResult {
+        user_id: string;
+      }
       
+      // Use a generic parameter with the interface
       const { data: memberData, error: getMemberError } = await supabase
         .from('team_members')
         .select('user_id')
-        .eq('id', memberId) as { data: MemberDataResult | null, error: any };
+        .eq('id', memberId);
 
       if (getMemberError) throw getMemberError;
       if (!memberData || memberData.length === 0) throw new Error('Team member not found');
