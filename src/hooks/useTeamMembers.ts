@@ -72,12 +72,12 @@ export function useTeamMembers() {
         throw new Error('You need admin privileges to add team members');
       }
 
-      // Fix for the type instantiation error by adding explicit type annotation
+      type UserSettingsResult = { user_id: string }[];
+      
       const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
-        .eq('email', email)
-        .returns<{ user_id: string }[]>();
+        .eq('email', email) as { data: UserSettingsResult | null, error: any };
 
       if (error) throw error;
       
@@ -133,11 +133,12 @@ export function useTeamMembers() {
         throw new Error('You need admin privileges to remove team members');
       }
 
+      type MemberDataResult = { user_id: string }[];
+      
       const { data: memberData, error: getMemberError } = await supabase
         .from('team_members')
         .select('user_id')
-        .eq('id', memberId)
-        .returns<{ user_id: string }[]>(); // Adding explicit type annotation here too
+        .eq('id', memberId) as { data: MemberDataResult | null, error: any };
 
       if (getMemberError) throw getMemberError;
       if (!memberData || memberData.length === 0) throw new Error('Team member not found');
