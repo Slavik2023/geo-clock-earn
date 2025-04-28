@@ -8,7 +8,10 @@ export function useAddTeamMember() {
   const { toast } = useToast();
   const { checkTeamAdminRights } = useTeamMemberPermissions();
 
-  const addTeamMember = async ({ teamId, email, role }: AddMemberParams, fetchTeamMembers: (teamId: string) => Promise<void>) => {
+  const addTeamMember = async (
+    { teamId, email, role }: AddMemberParams,
+    fetchTeamMembers: (teamId: string) => Promise<void>
+  ) => {
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
