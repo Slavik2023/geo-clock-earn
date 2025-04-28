@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +47,7 @@ export function useTeamMembers() {
       
       if (error || !data || data.length === 0) return false;
       
+      // Fix for line 93 - explicitly type the query without nested returns
       const { data: userSettings } = await supabase
         .from('user_settings')
         .select('is_admin')
