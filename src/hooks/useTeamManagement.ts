@@ -1,6 +1,6 @@
 
 import { useTeams } from './useTeams';
-import { useTeamMembers } from './useTeamMembers';
+import { useTeamMembers } from './team-members';
 import { useSubscription } from './useSubscription';
 
 export function useTeamManagement() {
@@ -24,4 +24,4 @@ export function useTeamManagement() {
 }
 
 export type { Team } from './useTeams';
-export type { TeamMember } from './useTeamMembers';
+export type { TeamMember } from './team-members';
