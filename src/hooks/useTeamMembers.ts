@@ -11,6 +11,22 @@ export type TeamMember = {
   joined_at: string;
 }
 
+type TeamMemberResult = {
+  role: string;
+};
+
+type UserSettingAdminResult = {
+  is_admin: boolean;
+};
+
+type UserSettingResult = {
+  user_id: string;
+};
+
+type MemberDataResult = {
+  user_id: string;
+};
+
 interface AddMemberParams {
   teamId: string;
   email: string;
@@ -23,10 +39,6 @@ export function useTeamMembers() {
 
   const checkTeamAdminRights = async (teamId: string, userId: string) => {
     try {
-      type TeamMemberResult = {
-        role: string;
-      };
-      
       const { data, error } = await supabase
         .from('team_members')
         .select('role')
@@ -35,10 +47,6 @@ export function useTeamMembers() {
         .returns<TeamMemberResult[]>();
       
       if (error || !data || data.length === 0) return false;
-      
-      type UserSettingAdminResult = {
-        is_admin: boolean;
-      };
       
       const { data: userSettings } = await supabase
         .from('user_settings')
@@ -82,10 +90,6 @@ export function useTeamMembers() {
       if (!hasAdminRights) {
         throw new Error('You need admin privileges to add team members');
       }
-
-      type UserSettingResult = {
-        user_id: string;
-      };
       
       const { data, error } = await supabase
         .from('user_settings')
@@ -146,10 +150,6 @@ export function useTeamMembers() {
       if (!hasAdminRights) {
         throw new Error('You need admin privileges to remove team members');
       }
-
-      type MemberDataResult = {
-        user_id: string;
-      };
       
       const { data: memberData, error: getMemberError } = await supabase
         .from('team_members')
