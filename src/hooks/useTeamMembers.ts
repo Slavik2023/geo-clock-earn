@@ -23,9 +23,9 @@ export function useTeamMembers() {
 
   const checkTeamAdminRights = async (teamId: string, userId: string) => {
     try {
-      interface TeamMemberResult {
+      type TeamMemberResult = {
         role: string;
-      }
+      };
       
       const { data, error } = await supabase
         .from('team_members')
@@ -36,9 +36,9 @@ export function useTeamMembers() {
       
       if (error || !data || data.length === 0) return false;
       
-      interface UserSettingAdminResult {
+      type UserSettingAdminResult = {
         is_admin: boolean;
-      }
+      };
       
       const { data: userSettings } = await supabase
         .from('user_settings')
@@ -58,7 +58,8 @@ export function useTeamMembers() {
       const { data, error } = await supabase
         .from('team_members')
         .select('*')
-        .eq('team_id', teamId);
+        .eq('team_id', teamId)
+        .returns<TeamMember[]>();
 
       if (error) throw error;
       setTeamMembers(data || []);
