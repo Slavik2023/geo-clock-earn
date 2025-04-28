@@ -23,7 +23,6 @@ export function useTeamMembers() {
 
   const checkTeamAdminRights = async (teamId: string, userId: string) => {
     try {
-      // Define a simple interface for the query result
       interface TeamMemberResult {
         role: string;
       }
@@ -37,7 +36,6 @@ export function useTeamMembers() {
       
       if (error || !data || data.length === 0) return false;
       
-      // Define a simple interface for the query result
       interface UserSettingAdminResult {
         is_admin: boolean;
       }
@@ -84,10 +82,9 @@ export function useTeamMembers() {
         throw new Error('You need admin privileges to add team members');
       }
 
-      // Define a simple interface for the query result
-      interface UserSettingResult {
+      type UserSettingResult = {
         user_id: string;
-      }
+      };
       
       const { data, error } = await supabase
         .from('user_settings')
@@ -149,10 +146,9 @@ export function useTeamMembers() {
         throw new Error('You need admin privileges to remove team members');
       }
 
-      // Define a simple interface for the query result
-      interface MemberDataResult {
+      type MemberDataResult = {
         user_id: string;
-      }
+      };
       
       const { data: memberData, error: getMemberError } = await supabase
         .from('team_members')
