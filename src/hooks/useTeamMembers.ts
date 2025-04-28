@@ -52,8 +52,7 @@ export function useTeamMembers() {
         .from('user_settings')
         .select('is_admin')
         .eq('user_id', userId)
-        .single()
-        .returns<UserSettingAdminResult>();
+        .single<UserSettingAdminResult>();
       
       return data[0]?.role === 'admin' || userSettings?.is_admin;
     } catch {
