@@ -48,12 +48,15 @@ export function useTeamMembers() {
       
       if (error || !data || data.length === 0) return false;
       
-      // Fix for line 93 - explicitly type the query without nested returns
-      const { data: userSettings, error: settingsError } = await supabase
+      // Fix for the TypeScript error - explicitly type the query with type annotations
+      const settingsQuery = await supabase
         .from('user_settings')
         .select('is_admin')
         .eq('user_id', userId)
-        .single<UserSettingAdminResult>();
+        .single();
+        
+      const userSettings: UserSettingAdminResult | null = settingsQuery.data;
+      const settingsError = settingsQuery.error;
       
       if (settingsError) return false;
       
