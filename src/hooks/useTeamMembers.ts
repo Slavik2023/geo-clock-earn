@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -48,17 +47,14 @@ export function useTeamMembers() {
       
       if (error || !data || data.length === 0) return false;
       
-      // Fix for the TypeScript error - explicitly type the query with type annotations
       const settingsQuery = await supabase
         .from('user_settings')
         .select('is_admin')
         .eq('user_id', userId)
         .single();
-        
-      const userSettings: UserSettingAdminResult | null = settingsQuery.data;
-      const settingsError = settingsQuery.error;
       
-      if (settingsError) return false;
+      if (settingsQuery.error) return false;
+      const userSettings = settingsQuery.data as UserSettingAdminResult | null;
       
       return data[0]?.role === 'admin' || userSettings?.is_admin;
     } catch {
