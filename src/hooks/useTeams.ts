@@ -26,33 +26,21 @@ export function useTeams() {
       const { data: userSettings, error: settingsError } = await supabase
         .from('user_settings')
         .select('is_admin')
-        .eq('user_id', userData.user.id);
+        .eq('user_id', userData.user.id)
+        .single();
 
-      if (!settingsError && userSettings && userSettings.length > 0) {
-        setIsAdmin(userSettings[0].is_admin || false);
+      if (!settingsError) {
+        setIsAdmin(userSettings?.is_admin || false);
       }
 
-      // Fetch teams the user is a member of
-      const { data: memberData, error: memberError } = await supabase
-        .from('team_members')
-        .select('team_id')
-        .eq('user_id', userData.user.id);
+      // Use a direct RPC call to avoid RLS recursion
+      const { data, error } = await supabase.rpc(
+        'get_user_teams',
+        { user_id_param: userData.user.id }
+      );
 
-      if (memberError) throw memberError;
-      
-      const teamIds = memberData?.map(member => member.team_id) || [];
-      
-      if (teamIds.length > 0) {
-        const { data: teamData, error: teamsError } = await supabase
-          .from('teams')
-          .select('*')
-          .in('id', teamIds);
-
-        if (teamsError) throw teamsError;
-        setTeams(teamData || []);
-      } else {
-        setTeams([]);
-      }
+      if (error) throw error;
+      setTeams(data || []);
     } catch (error) {
       console.error('Error fetching teams:', error);
       toast({

@@ -6,15 +6,17 @@ import { TeamMember } from './types';
 
 export function useTeamMemberList() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const fetchTeamMembers = useCallback(async (teamId: string) => {
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('team_members')
-        .select('*')
-        .eq('team_id', teamId)
-        .returns<TeamMember[]>();
+      // Use a direct query without complex joins to avoid recursion in RLS policies
+      const { data, error } = await supabase.rpc(
+        'get_team_members_by_team',
+        { team_id_param: teamId }
+      );
 
       if (error) throw error;
       setTeamMembers(data || []);
@@ -25,11 +27,14 @@ export function useTeamMemberList() {
         description: 'Failed to load team members',
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   }, [toast]);
 
   return {
     teamMembers,
-    fetchTeamMembers
+    fetchTeamMembers,
+    isLoading
   };
 }
