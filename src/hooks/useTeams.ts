@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -58,7 +59,7 @@ export function useTeams() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      // First create the team - Using correct typing for Supabase RPC
+      // First create the team
       const { data, error } = await supabase.rpc(
         'create_team_with_member',
         { 
