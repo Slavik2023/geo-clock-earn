@@ -43,8 +43,15 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Auth state changed:", event);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        if (currentSession) {
+          // Only update state if there's a valid session
+          setSession(currentSession);
+          setUser(currentSession.user);
+        } else if (event === 'SIGNED_OUT') {
+          // Clear state on sign out
+          setSession(null);
+          setUser(null);
+        }
       }
     );
 
@@ -52,8 +59,13 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const initializeAuth = async () => {
       try {
         const { data } = await supabase.auth.getSession();
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
+        if (data.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          console.log("Restored existing session for user:", data.session.user.email);
+        } else {
+          console.log("No existing session found");
+        }
       } catch (error) {
         console.error("Error getting session:", error);
       } finally {

@@ -26,7 +26,7 @@ export function AuthPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,10 +38,11 @@ export function AuthPage() {
 
   // Check if user is already logged in
   useEffect(() => {
-    if (user) {
+    if (user && !isLoading) {
+      console.log("User already authenticated, redirecting to home");
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, isLoading, navigate]);
 
   const handleAuthentication = async (values: z.infer<typeof formSchema>) => {
     const { email, password } = values;
@@ -105,6 +106,11 @@ export function AuthPage() {
     setAuthError(null);
     form.reset();
   };
+
+  // If still checking authentication state, show loading
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center">Checking authentication status...</div>;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
