@@ -68,7 +68,14 @@ export function useTeams() {
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error('RPC Error:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error('Failed to create team - no data returned');
+      }
 
       // Add audit log entry
       await supabase
