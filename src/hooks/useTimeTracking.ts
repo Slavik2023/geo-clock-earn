@@ -20,7 +20,11 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
   const [locationDetails, setLocationDetails] = useState<LocationDetails | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-
+  const [lunchBreakActive, setLunchBreakActive] = useState(false);
+  const [lunchBreakStart, setLunchBreakStart] = useState<Date | null>(null);
+  const [lunchBreakDuration, setLunchBreakDuration] = useState(0); // in minutes
+  const [totalBreakTime, setTotalBreakTime] = useState(0); // in minutes
+  
   // Get current user and load user settings
   useEffect(() => {
     async function getUserAndSettings() {
@@ -50,32 +54,51 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
     getUserAndSettings();
   }, []);
 
-  // Load active timer from localStorage (to be migrated to Supabase in future)
+  // Load active timer from localStorage 
   useEffect(() => {
     const activeTimerStart = localStorage.getItem("activeTimerStart");
     const activeSessionId = localStorage.getItem("activeSessionId");
     const activeLocationDetails = localStorage.getItem("activeLocationDetails");
+    const activeLunchBreakTotal = localStorage.getItem("activeLunchBreakTotal");
     
     if (activeTimerStart) {
       setStartTime(new Date(activeTimerStart));
       setIsTracking(true);
       setCurrentSessionId(activeSessionId);
       
+      if (activeLunchBreakTotal) {
+        setTotalBreakTime(parseInt(activeLunchBreakTotal));
+      }
+      
       if (activeLocationDetails) {
         const parsedLocationDetails = JSON.parse(activeLocationDetails);
         setLocationDetails(parsedLocationDetails);
         setHourlyRate(parsedLocationDetails.hourly_rate || 25);
-        // Default overtime rate to 1.5x hourly rate if not specified
         setOvertimeRate(parsedLocationDetails.overtime_rate || parsedLocationDetails.hourly_rate * 1.5 || 37.5);
       }
     }
   }, []);
 
+  // Handle lunch breaks
+  useEffect(() => {
+    if (lunchBreakActive && lunchBreakStart) {
+      const breakTimer = setInterval(() => {
+        const now = new Date();
+        const elapsed = Math.floor((now.getTime() - lunchBreakStart.getTime()) / (1000 * 60));
+        
+        if (elapsed >= lunchBreakDuration) {
+          endLunchBreak();
+        }
+      }, 1000);
+      
+      return () => clearInterval(breakTimer);
+    }
+  }, [lunchBreakActive, lunchBreakStart, lunchBreakDuration]);
+
   const handleLocationVerified = (verified: boolean, details?: LocationDetails) => {
     if (verified && details) {
       setLocationDetails(details);
       setHourlyRate(details.hourly_rate || 25);
-      // Default overtime rate to 1.5x hourly rate
       setOvertimeRate(details.overtime_rate || details.hourly_rate * 1.5);
     } else if (!verified) {
       toast({
@@ -84,6 +107,39 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
         description: "Please enable location services to use time tracking."
       });
     }
+  };
+
+  const startLunchBreak = (duration: number) => {
+    if (!isTracking) return;
+    
+    setLunchBreakActive(true);
+    setLunchBreakStart(new Date());
+    setLunchBreakDuration(duration);
+    
+    toast({
+      title: "Lunch Break Started",
+      description: `${duration} minute break started. Timer will be adjusted automatically.`,
+    });
+  };
+
+  const endLunchBreak = () => {
+    if (!lunchBreakStart) return;
+    
+    const now = new Date();
+    const breakDurationMinutes = Math.floor((now.getTime() - lunchBreakStart.getTime()) / (1000 * 60));
+    const newTotalBreakTime = totalBreakTime + breakDurationMinutes;
+    
+    setTotalBreakTime(newTotalBreakTime);
+    setLunchBreakActive(false);
+    setLunchBreakStart(null);
+    
+    // Update in localStorage
+    localStorage.setItem("activeLunchBreakTotal", newTotalBreakTime.toString());
+    
+    toast({
+      title: "Lunch Break Ended",
+      description: `${breakDurationMinutes} minute break has been recorded.`,
+    });
   };
 
   const handleToggleTimer = async () => {
@@ -113,10 +169,12 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
         const now = new Date();
         setStartTime(now);
         setIsTracking(true);
+        setTotalBreakTime(0);
         
         // Save to localStorage
         localStorage.setItem("activeTimerStart", now.toISOString());
         localStorage.setItem("activeLocationDetails", JSON.stringify(locationDetails));
+        localStorage.setItem("activeLunchBreakTotal", "0");
         
         // Create a new session in the database
         if (locationDetails) {
@@ -157,6 +215,11 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
           description: `Started at ${now.toLocaleTimeString()} at ${locationDetails?.name || locationDetails?.address || 'current location'}`,
         });
       } else {
+        // End the current lunch break if active
+        if (lunchBreakActive) {
+          endLunchBreak();
+        }
+        
         // Stop tracking
         const now = new Date();
         setEndTime(now);
@@ -165,7 +228,13 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
         // Calculate duration and earnings
         if (startTime) {
           const durationMs = now.getTime() - startTime.getTime();
-          const durationHours = durationMs / (1000 * 60 * 60);
+          
+          // Subtract break time from total duration
+          const breakTimeMs = totalBreakTime * 60 * 1000;
+          const adjustedDurationMs = durationMs - breakTimeMs;
+          const durationHours = adjustedDurationMs / (1000 * 60 * 60);
+          
+          console.log(`Total duration: ${durationHours.toFixed(2)} hours (with ${totalBreakTime} minutes breaks)`);
           
           // Calculate regular and overtime hours
           let regularHours = durationHours;
@@ -196,6 +265,31 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
               })
               .eq("id", currentSessionId);
             
+            // Create overtime period if applicable
+            if (overtimeHours > 0) {
+              const overtimeStart = new Date(startTime.getTime() + (overtimeThreshold * 60 * 60 * 1000) + breakTimeMs);
+              
+              const overtimeData = {
+                user_id: userId,
+                session_id: currentSessionId,
+                start_time: overtimeStart.toISOString(),
+                end_time: now.toISOString(),
+                overtime_rate: overtimeRate,
+                duration_minutes: Math.floor(overtimeHours * 60),
+                earnings: overtimeEarnings
+              };
+              
+              console.log("Creating overtime period:", overtimeData);
+              
+              const { error: overtimeError } = await supabase
+                .from("overtime_periods")
+                .insert(overtimeData);
+              
+              if (overtimeError) {
+                console.error("Error recording overtime:", overtimeError);
+              }
+            }
+            
             if (error) {
               console.error("Error updating session:", error);
               toast({
@@ -214,6 +308,10 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
             earningsMessage = `You earned $${totalEarnings.toFixed(2)} (includes $${overtimeEarnings.toFixed(2)} overtime) for this session.`;
           }
           
+          if (totalBreakTime > 0) {
+            earningsMessage += ` Total break time: ${totalBreakTime} minutes.`;
+          }
+          
           toast({
             title: "Time Tracking Stopped",
             description: earningsMessage,
@@ -223,11 +321,13 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
           localStorage.removeItem("activeTimerStart");
           localStorage.removeItem("activeSessionId");
           localStorage.removeItem("activeLocationDetails");
+          localStorage.removeItem("activeLunchBreakTotal");
           
           // After a short delay, reset the start time
           setTimeout(() => {
             setStartTime(null);
             setCurrentSessionId(null);
+            setTotalBreakTime(0);
           }, 3000);
         }
       }
@@ -252,6 +352,10 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
     overtimeThreshold,
     locationDetails,
     handleLocationVerified,
-    handleToggleTimer
+    handleToggleTimer,
+    lunchBreakActive,
+    startLunchBreak,
+    endLunchBreak,
+    totalBreakTime
   };
 }

@@ -6,6 +6,7 @@ import { EnhancedLocationCheck } from "@/components/time-tracker/EnhancedLocatio
 import { EarningsCard } from "@/components/time-tracker/EarningsCard";
 import { CurrentLocationCard } from "@/components/time-tracker/CurrentLocationCard";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
+import { LunchBreakButton } from "@/components/time-tracker/LunchBreakButton";
 
 export function TrackerPage() {
   const [isLocationVerified, setIsLocationVerified] = useState(false);
@@ -19,7 +20,10 @@ export function TrackerPage() {
     overtimeThreshold,
     locationDetails,
     handleLocationVerified,
-    handleToggleTimer
+    handleToggleTimer,
+    lunchBreakActive,
+    startLunchBreak,
+    totalBreakTime
   } = useTimeTracking({ isLocationVerified });
 
   const onLocationVerified = (verified: boolean, details?: any) => {
@@ -43,12 +47,20 @@ export function TrackerPage() {
         )}
       </div>
       
-      <TimerButton 
-        isActive={isTracking} 
-        onToggle={handleToggleTimer} 
-        isLoading={isLoading}
-        disabled={!isLocationVerified && !isTracking}
-      />
+      <div className="flex flex-col md:flex-row items-center gap-4">
+        <TimerButton 
+          isActive={isTracking} 
+          onToggle={handleToggleTimer} 
+          isLoading={isLoading}
+          disabled={!isLocationVerified && !isTracking}
+        />
+        
+        <LunchBreakButton 
+          onBreakStart={startLunchBreak}
+          isTimerRunning={isTracking}
+          disabled={lunchBreakActive}
+        />
+      </div>
       
       <div className="w-full max-w-md mt-4">
         <EarningsCard 
@@ -57,6 +69,7 @@ export function TrackerPage() {
           startTime={startTime}
           isActive={isTracking}
           overtimeThresholdHours={overtimeThreshold}
+          totalBreakTime={totalBreakTime}
         />
       </div>
     </div>

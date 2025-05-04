@@ -10,6 +10,7 @@ interface EarningsCardProps {
   startTime?: Date | null;
   isActive?: boolean;
   overtimeThresholdHours?: number;
+  totalBreakTime?: number; // in minutes
 }
 
 export function EarningsCard({ 
@@ -17,10 +18,11 @@ export function EarningsCard({
   overtimeRate, 
   startTime, 
   isActive = false,
-  overtimeThresholdHours = 8
+  overtimeThresholdHours = 8,
+  totalBreakTime = 0
 }: EarningsCardProps) {
   const [earnings, setEarnings] = useState({ total: 0, regular: 0, overtime: 0 });
-  const [duration, setDuration] = useState({ hours: 0, formatted: "0h 0m" });
+  const [duration, setDuration] = useState({ hours: 0, formatted: "0h 0m", net: "0h 0m" });
   const [overtimeHours, setOvertimeHours] = useState(0);
   const [regularHours, setRegularHours] = useState(0);
   
@@ -28,14 +30,19 @@ export function EarningsCard({
   useEffect(() => {
     if (!isActive || !startTime) {
       setEarnings({ total: 0, regular: 0, overtime: 0 });
-      setDuration({ hours: 0, formatted: "0h 0m" });
+      setDuration({ hours: 0, formatted: "0h 0m", net: "0h 0m" });
       return;
     }
     
     const calculateEarnings = () => {
       const now = new Date();
-      const durationMs = now.getTime() - startTime.getTime();
-      const durationHours = durationMs / (1000 * 60 * 60);
+      const grossDurationMs = now.getTime() - startTime.getTime();
+      
+      // Subtract break time
+      const breakTimeMs = totalBreakTime * 60 * 1000;
+      const netDurationMs = grossDurationMs - breakTimeMs;
+      
+      const durationHours = netDurationMs / (1000 * 60 * 60);
       
       let regularHrs = durationHours;
       let overtimeHrs = 0;
@@ -57,9 +64,17 @@ export function EarningsCard({
         total: regularEarnings + overtimeEarnings
       });
       
+      const grossFormatted = formatDistanceStrict(now, startTime, { addSuffix: false });
+      
+      // Calculate net time (gross time minus breaks)
+      const netTime = new Date(now.getTime() - breakTimeMs);
+      const netTimeStart = new Date(startTime.getTime());
+      const netFormatted = formatDistanceStrict(netTime, netTimeStart, { addSuffix: false });
+      
       setDuration({
         hours: durationHours,
-        formatted: formatDistanceStrict(now, startTime, { addSuffix: false })
+        formatted: grossFormatted,
+        net: netFormatted
       });
     };
     
@@ -67,7 +82,7 @@ export function EarningsCard({
     
     const timer = setInterval(calculateEarnings, 1000);
     return () => clearInterval(timer);
-  }, [isActive, startTime, hourlyRate, overtimeRate, overtimeThresholdHours]);
+  }, [isActive, startTime, hourlyRate, overtimeRate, overtimeThresholdHours, totalBreakTime]);
 
   return (
     <Card>
@@ -96,8 +111,18 @@ export function EarningsCard({
             {isActive && startTime && (
               <>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Time Worked:</span>
+                  <span className="text-muted-foreground">Gross Time:</span>
                   <span>{duration.formatted}</span>
+                </div>
+                {totalBreakTime > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Break Time:</span>
+                    <span>{totalBreakTime} min</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Net Work Time:</span>
+                  <span>{duration.net}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Start Time:</span>
