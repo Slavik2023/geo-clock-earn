@@ -21,7 +21,7 @@ export function useAddTeamMember() {
         throw new Error('You need admin privileges to add team members');
       }
       
-      // Explicitly use type assertion to avoid deep instantiation error
+      // Using a non-generic query to avoid excessive type instantiation
       const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
@@ -29,6 +29,7 @@ export function useAddTeamMember() {
         
       if (error) throw error;
       
+      // Explicitly cast the result to the expected type
       const userSettings = data as UserSettingResult[] | null;
       
       if (!userSettings || userSettings.length === 0) {
