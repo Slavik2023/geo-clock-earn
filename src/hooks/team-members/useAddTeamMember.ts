@@ -21,18 +21,18 @@ export function useAddTeamMember() {
         throw new Error('You need admin privileges to add team members');
       }
       
-      // Using raw query with no typing to avoid type instantiation issues
-      const { data, error } = await supabase
+      // Avoid type inference by not using generic types on the query
+      const result = await supabase
         .from('user_settings')
         .select('user_id')
         .eq('email', email);
         
-      if (error) throw error;
+      if (result.error) throw result.error;
       
-      // Use a simple type cast with no reference to other types
-      const userSettings = data as { user_id: string }[] | null;
+      // Explicitly type the result without using complex types
+      const userList = result.data as Array<{user_id: string}> | null;
       
-      if (!userSettings || userSettings.length === 0) {
+      if (!userList || userList.length === 0) {
         toast({
           title: 'User not found',
           description: 'User with this email is not registered in the system',
@@ -44,7 +44,7 @@ export function useAddTeamMember() {
       const { error: insertError } = await supabase
         .from('team_members')
         .insert({
-          user_id: userSettings[0].user_id,
+          user_id: userList[0].user_id,
           team_id: teamId,
           role: role,
         });
