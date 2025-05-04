@@ -21,15 +21,17 @@ export function useAddTeamMember() {
         throw new Error('You need admin privileges to add team members');
       }
       
+      // Explicitly use type assertion to avoid deep instantiation error
       const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
-        .eq('email', email)
-        .returns<UserSettingResult[]>();
-
+        .eq('email', email);
+        
       if (error) throw error;
       
-      if (!data || data.length === 0) {
+      const userSettings = data as UserSettingResult[] | null;
+      
+      if (!userSettings || userSettings.length === 0) {
         toast({
           title: 'User not found',
           description: 'User with this email is not registered in the system',
@@ -41,7 +43,7 @@ export function useAddTeamMember() {
       const { error: insertError } = await supabase
         .from('team_members')
         .insert({
-          user_id: data[0].user_id,
+          user_id: userSettings[0].user_id,
           team_id: teamId,
           role: role,
         });
