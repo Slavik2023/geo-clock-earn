@@ -55,31 +55,22 @@ export function useTeams() {
 
   const createTeam = async (companyName: string) => {
     try {
+      setIsLoading(true);
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
-        .from('teams')
-        .insert({
-          company_name: companyName,
-          created_by: userData.user.id,
-          subscription_plan: 'free',
-        })
-        .select()
-        .single();
+      // First create the team
+      const { data, error } = await supabase.rpc(
+        'create_team_with_member',
+        { 
+          company_name_param: companyName,
+          user_id_param: userData.user.id
+        }
+      );
 
       if (error) throw error;
 
-      const { error: memberError } = await supabase
-        .from('team_members')
-        .insert({
-          user_id: userData.user.id,
-          team_id: data.id,
-          role: 'admin',
-        });
-
-      if (memberError) throw memberError;
-
+      // Add audit log entry
       await supabase
         .from('audit_logs')
         .insert({
@@ -102,6 +93,8 @@ export function useTeams() {
         description: 'Failed to create team',
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
