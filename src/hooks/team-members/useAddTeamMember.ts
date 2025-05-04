@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { AddMemberParams, UserSettingResult } from './types';
+import { AddMemberParams } from './types';
 import { useTeamMemberPermissions } from './useTeamMemberPermissions';
 
 export function useAddTeamMember() {
@@ -21,15 +21,16 @@ export function useAddTeamMember() {
         throw new Error('You need admin privileges to add team members');
       }
       
-      // Complete removal of generic typing to avoid deep instantiation errors
-      const userSettingsResponse = await supabase
+      // Using raw query with no typing to avoid type instantiation issues
+      const { data, error } = await supabase
         .from('user_settings')
         .select('user_id')
         .eq('email', email);
         
-      if (userSettingsResponse.error) throw userSettingsResponse.error;
+      if (error) throw error;
       
-      const userSettings = userSettingsResponse.data as Array<{ user_id: string }>;
+      // Use a simple type cast with no reference to other types
+      const userSettings = data as { user_id: string }[] | null;
       
       if (!userSettings || userSettings.length === 0) {
         toast({
