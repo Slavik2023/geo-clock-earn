@@ -12,7 +12,7 @@ export function useTeamMemberList() {
   const fetchTeamMembers = useCallback(async (teamId: string) => {
     setIsLoading(true);
     try {
-      // Use a direct query without complex joins to avoid recursion in RLS policies
+      // Use the security definer function to avoid recursion in RLS policies
       const { data, error } = await supabase.rpc(
         'get_team_members_by_team',
         { team_id_param: teamId }

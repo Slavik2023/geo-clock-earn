@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Team {
   id: string;
@@ -33,7 +33,7 @@ export function useTeams() {
         setIsAdmin(userSettings?.is_admin || false);
       }
 
-      // Use a direct RPC call to avoid RLS recursion
+      // Use the security definer function to avoid recursion in RLS policies
       const { data, error } = await supabase.rpc(
         'get_user_teams',
         { user_id_param: userData.user.id }

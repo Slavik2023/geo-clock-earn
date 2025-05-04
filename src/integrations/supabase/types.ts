@@ -457,9 +457,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_team_members_by_team: {
+        Args: { team_id_param: string }
+        Returns: {
+          id: string
+          joined_at: string | null
+          role: string
+          team_id: string
+          user_id: string
+        }[]
+      }
       get_user_id_by_email: {
         Args: { email_param: string }
         Returns: string
+      }
+      get_user_teams: {
+        Args: { user_id_param: string }
+        Returns: {
+          company_name: string
+          created_at: string | null
+          created_by: string
+          id: string
+          subscription_plan: string
+          updated_at: string | null
+        }[]
       }
     }
     Enums: {
