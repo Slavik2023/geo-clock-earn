@@ -60,7 +60,12 @@ export function useTeams() {
       if (!userData.user) throw new Error('Not authenticated');
 
       // First create the team
-      const { data, error } = await supabase.rpc(
+      const { data, error } = await supabase.rpc<{
+        id: string;
+        company_name: string;
+        subscription_plan: string;
+        created_at: string;
+      }>(
         'create_team_with_member',
         { 
           company_name_param: companyName,
@@ -77,7 +82,7 @@ export function useTeams() {
           user_id: userData.user.id,
           action: 'create_team',
           entity_type: 'teams',
-          entity_id: data.id,
+          entity_id: data[0].id,
           details: { team_name: companyName }
         });
 

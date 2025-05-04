@@ -457,6 +457,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_team_with_member: {
+        Args: { company_name_param: string; user_id_param: string }
+        Returns: {
+          id: string
+          company_name: string
+          subscription_plan: string
+          created_at: string
+        }[]
+      }
       get_team_members_by_team: {
         Args: { team_id_param: string }
         Returns: {
