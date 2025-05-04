@@ -11,12 +11,18 @@ import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { CalendarIcon, BarChart2, ClipboardListIcon } from "lucide-react";
 import { AnalyticsCard } from "@/components/time-tracker/AnalyticsCard";
 import { DateRange } from "react-day-picker";
+import { useLocation } from "react-router-dom";
 
 export function HistoryPage() {
   const [sessions, setSessions] = useState<WorkSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("sessions");
+  const location = useLocation();
+  
+  // Check if we should show analytics tab based on URL parameter
+  const urlParams = new URLSearchParams(location.search);
+  const tabFromUrl = urlParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl === 'analytics' ? "analytics" : "sessions");
   
   // Date filtering state using DateRange type
   const [dateRange, setDateRange] = useState<DateRange>({

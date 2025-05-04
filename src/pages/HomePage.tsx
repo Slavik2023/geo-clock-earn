@@ -171,19 +171,23 @@ export function HomePage() {
             </Card>
           </Link>
           
-          <Card className="h-full border-2 border-transparent hover:border-brand-orange/30 hover:shadow-md transition-all bg-white dark:bg-gray-800">
-            <CardContent className="flex flex-col items-center justify-center p-6">
-              <DollarSignIcon size={24} className="mb-2 text-brand-orange" />
-              <span className="text-sm font-medium">Тарифы</span>
-            </CardContent>
-          </Card>
+          <Link to="/profile" className="h-full">
+            <Card className="h-full border-2 border-transparent hover:border-brand-orange/30 hover:shadow-md transition-all bg-white dark:bg-gray-800">
+              <CardContent className="flex flex-col items-center justify-center p-6">
+                <DollarSignIcon size={24} className="mb-2 text-brand-orange" />
+                <span className="text-sm font-medium">Тарифы</span>
+              </CardContent>
+            </Card>
+          </Link>
           
-          <Card className="h-full border-2 border-transparent hover:border-green-500/30 hover:shadow-md transition-all bg-white dark:bg-gray-800">
-            <CardContent className="flex flex-col items-center justify-center p-6">
-              <TrendingUp size={24} className="mb-2 text-green-500" />
-              <span className="text-sm font-medium">Аналитика</span>
-            </CardContent>
-          </Card>
+          <Link to="/history?tab=analytics" className="h-full">
+            <Card className="h-full border-2 border-transparent hover:border-green-500/30 hover:shadow-md transition-all bg-white dark:bg-gray-800">
+              <CardContent className="flex flex-col items-center justify-center p-6">
+                <TrendingUp size={24} className="mb-2 text-green-500" />
+                <span className="text-sm font-medium">Аналитика</span>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </motion.section>
     </div>

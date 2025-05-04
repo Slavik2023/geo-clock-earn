@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
-import { Clock, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { WorkSession } from "./WorkSessionCard";
 
 interface SessionDetailsProps {
