@@ -1,163 +1,154 @@
 
-import { useState } from "react";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue, 
-} from "@/components/ui/select";
-import { WorkSessionCard, WorkSession } from "@/components/time-tracker/WorkSessionCard";
-import { startOfDay, endOfDay, subDays, startOfWeek, endOfWeek } from "date-fns";
+import { useState, useEffect } from "react";
 import { fetchSessions, fetchSessionsByDateRange } from "@/components/time-tracker/services/sessionService";
-import { useQuery } from "@tanstack/react-query";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, RefreshCcw } from "lucide-react";
+import { WorkSessionCard, WorkSession } from "@/components/time-tracker/WorkSessionCard";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, BarChart2, ClipboardListIcon } from "lucide-react";
+import { AnalyticsCard } from "@/components/time-tracker/AnalyticsCard";
 
 export function HistoryPage() {
-  const [filter, setFilter] = useState("week");
+  const [sessions, setSessions] = useState<WorkSession[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("sessions");
   
-  // Get date range based on selected filter
-  const getDateRange = () => {
-    const now = new Date();
-    
-    switch (filter) {
-      case "today":
-        return { start: startOfDay(now), end: endOfDay(now) };
-      case "yesterday":
-        const yesterday = subDays(now, 1);
-        return { start: startOfDay(yesterday), end: endOfDay(yesterday) };
-      case "week":
-        return { 
-          start: startOfWeek(now, { weekStartsOn: 1 }), 
-          end: endOfWeek(now, { weekStartsOn: 1 }) 
-        };
-      case "all":
-      default:
-        // For "all", we'll fetch all sessions without date filtering
-        return null;
-    }
-  };
-  
-  const dateRange = getDateRange();
-  
-  // Fetch sessions data with error handling
-  const { data: sessions = [], isLoading, error, refetch, isRefetching } = useQuery({
-    queryKey: ["sessions", filter],
-    queryFn: async () => {
-      try {
-        if (dateRange) {
-          return await fetchSessionsByDateRange(dateRange.start, dateRange.end);
-        } else {
-          return await fetchSessions();
-        }
-      } catch (err) {
-        console.error("Error fetching sessions:", err);
-        throw err;
-      }
-    },
-    // Add retry strategy with exponential backoff
-    retry: 1,
-    retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+  // Date filtering
+  const [dateRange, setDateRange] = useState<{
+    from: Date;
+    to: Date;
+  }>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
   });
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
-  // Calculate total earnings for the filtered period
-  const totalEarnings = sessions.reduce(
-    (sum, session) => sum + (session.earnings || 0), 
-    0
-  );
+  // Fetch sessions on initial load and when date range changes
+  useEffect(() => {
+    async function loadSessions() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const from = startOfDay(dateRange.from);
+        const to = endOfDay(dateRange.to);
+        const data = await fetchSessionsByDateRange(from, to);
+        setSessions(data);
+      } catch (err) {
+        setError("Failed to load sessions");
+        console.error("Error loading sessions:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    loadSessions();
+  }, [dateRange]);
 
-  if (error) {
-    console.error("Error loading sessions:", error);
-  }
-
-  const handleRetry = () => {
-    refetch();
+  const handleQuickFilter = (days: number) => {
+    setDateRange({
+      from: subDays(new Date(), days),
+      to: new Date(),
+    });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Work History</h2>
-          <p className="text-muted-foreground">
-            View and manage your work sessions
-          </p>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Work History</h1>
+        <div className="flex space-x-2">
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <CalendarIcon className="h-4 w-4" />
+                <span>
+                  {dateRange.from ? format(dateRange.from, "MMM d") : "Start date"} - 
+                  {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "End date"}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                initialFocus
+                mode="range"
+                selected={dateRange}
+                onSelect={(range) => {
+                  if (range && range.from && range.to) {
+                    setDateRange(range);
+                    setCalendarOpen(false);
+                  }
+                }}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
-        <Select 
-          value={filter} 
-          onValueChange={value => setFilter(value)}
+      </div>
+      
+      <div className="flex space-x-2 overflow-x-auto pb-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => handleQuickFilter(7)}
         >
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="Filter" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Today</SelectItem>
-            <SelectItem value="yesterday">Yesterday</SelectItem>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="all">All Time</SelectItem>
-          </SelectContent>
-        </Select>
+          Last 7 Days
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => handleQuickFilter(30)}
+        >
+          Last 30 Days
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => handleQuickFilter(90)}
+        >
+          Last 90 Days
+        </Button>
       </div>
-
-      <div className="bg-muted p-4 rounded-lg">
-        <div className="flex justify-between items-center">
-          <span className="text-muted-foreground">Total Earnings</span>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="sessions" className="flex items-center gap-2">
+            <ClipboardListIcon className="h-4 w-4" />
+            Sessions
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart2 className="h-4 w-4" />
+            Analytics
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="sessions" className="space-y-4">
           {isLoading ? (
-            <Skeleton className="h-8 w-24" />
-          ) : (
-            <span className="text-2xl font-bold">${totalEarnings.toFixed(2)}</span>
-          )}
-        </div>
-      </div>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription className="flex flex-col gap-2">
-            <span>There was a problem loading your sessions.</span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRetry} 
-              className="self-start"
-              disabled={isRefetching}
-            >
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              {isRefetching ? "Retrying..." : "Try Again"}
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {isLoading || isRefetching ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="p-4 border rounded-lg">
-              <Skeleton className="h-6 w-36 mb-2" />
-              <Skeleton className="h-4 w-48 mb-4" />
-              <div className="flex justify-between">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-16" />
-              </div>
+            <div className="text-center py-8">Loading sessions...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-500">{error}</div>
+          ) : sessions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No sessions found for the selected date range.
             </div>
-          ))}
-        </div>
-      ) : sessions.length > 0 ? (
-        <div className="space-y-4">
-          {sessions.map(session => (
-            <WorkSessionCard key={session.id} session={session} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">No work sessions found for this period.</p>
-        </div>
-      )}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {sessions.map((session) => (
+                <WorkSessionCard key={session.id} session={session} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="analytics">
+          <AnalyticsCard sessions={sessions} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
