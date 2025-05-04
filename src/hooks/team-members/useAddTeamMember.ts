@@ -21,18 +21,15 @@ export function useAddTeamMember() {
         throw new Error('You need admin privileges to add team members');
       }
       
-      // Avoid type inference by not using generic types on the query
-      const result = await supabase
-        .from('user_settings')
-        .select('user_id')
-        .eq('email', email);
-        
-      if (result.error) throw result.error;
+      // Simplify the query completely and avoid type inference
+      const settingsQuery = await supabase.rpc('get_user_id_by_email', { email_param: email });
       
-      // Explicitly type the result without using complex types
-      const userList = result.data as Array<{user_id: string}> | null;
+      if (settingsQuery.error) throw settingsQuery.error;
       
-      if (!userList || userList.length === 0) {
+      // Get the user ID as a simple string value
+      const userId = settingsQuery.data;
+      
+      if (!userId) {
         toast({
           title: 'User not found',
           description: 'User with this email is not registered in the system',
@@ -44,7 +41,7 @@ export function useAddTeamMember() {
       const { error: insertError } = await supabase
         .from('team_members')
         .insert({
-          user_id: userList[0].user_id,
+          user_id: userId,
           team_id: teamId,
           role: role,
         });
