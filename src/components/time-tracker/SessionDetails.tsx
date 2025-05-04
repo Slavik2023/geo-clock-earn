@@ -44,7 +44,7 @@ export function SessionDetails({ session, isOpen, onClose }: SessionDetailsProps
     : "N/A";
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md md:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-xl">Session Details</DialogTitle>
