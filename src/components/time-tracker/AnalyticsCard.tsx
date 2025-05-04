@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkSession } from "./WorkSessionCard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useEffect, useState } from "react";
-import { format, getWeek, getMonth, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { format } from "date-fns";
 
 interface AnalyticsCardProps {
   sessions: WorkSession[];
@@ -11,7 +11,6 @@ interface AnalyticsCardProps {
 
 export function AnalyticsCard({ sessions }: AnalyticsCardProps) {
   const [dailyData, setDailyData] = useState<any[]>([]);
-  const [weeklyData, setWeeklyData] = useState<any[]>([]);
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [totalHours, setTotalHours] = useState(0);
   const [averageHourlyRate, setAverageHourlyRate] = useState(0);
@@ -36,7 +35,7 @@ export function AnalyticsCard({ sessions }: AnalyticsCardProps) {
       
       const sessionHours = session.endTime 
         ? (session.endTime.getTime() - session.startTime.getTime()) / (1000 * 60 * 60) 
-        : 0;
+        : (new Date().getTime() - session.startTime.getTime()) / (1000 * 60 * 60);
       
       hours += sessionHours;
       

@@ -16,18 +16,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
-import { Clock, DollarSign, MapPin } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import { WorkSession } from "./WorkSessionCard";
 
 interface SessionDetailsProps {
-  session: WorkSession | null;
+  session: WorkSession;
   isOpen: boolean;
   onClose: () => void;
 }
 
 export function SessionDetails({ session, isOpen, onClose }: SessionDetailsProps) {
-  if (!session) return null;
-
   // Format dates and calculate duration
   const formattedDate = format(session.startTime, "EEEE, MMMM d, yyyy");
   const startTimeFormatted = format(session.startTime, "h:mm a");
@@ -38,7 +36,7 @@ export function SessionDetails({ session, isOpen, onClose }: SessionDetailsProps
   // Calculate total hours
   const durationHours = session.endTime 
     ? (session.endTime.getTime() - session.startTime.getTime()) / (1000 * 60 * 60) 
-    : 0;
+    : (new Date().getTime() - session.startTime.getTime()) / (1000 * 60 * 60);
     
   // Calculate hourly rate based on earnings and duration
   const hourlyRate = durationHours > 0 

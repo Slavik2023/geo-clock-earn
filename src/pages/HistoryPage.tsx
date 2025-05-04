@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
-import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, BarChart2, ClipboardListIcon } from "lucide-react";
+import { CalendarIcon, BarChart2, ClipboardListIcon } from "lucide-react";
 import { AnalyticsCard } from "@/components/time-tracker/AnalyticsCard";
 import { DateRange } from "react-day-picker";
 
@@ -18,7 +18,7 @@ export function HistoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("sessions");
   
-  // Date filtering - updated state type to use DateRange
+  // Date filtering state using DateRange type
   const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
     to: new Date(),

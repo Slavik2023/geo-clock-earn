@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDistanceStrict, format } from "date-fns";
-import { MapPinIcon, ClockIcon, DollarSignIcon, ChevronRightIcon } from "lucide-react";
+import { MapPinIcon, ClockIcon, ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
 import { SessionDetails } from "./SessionDetails";
 
@@ -73,13 +73,14 @@ export function WorkSessionCard({ session }: WorkSessionCardProps) {
           <Button 
             variant="ghost" 
             size="sm" 
-            className="ml-auto text-brand-blue flex items-center"
+            className="ml-auto flex items-center"
             onClick={() => setShowDetails(true)}
           >
             Details <ChevronRightIcon className="ml-1 h-4 w-4" />
           </Button>
         </CardFooter>
       </Card>
+
       <SessionDetails 
         session={session}
         isOpen={showDetails}
