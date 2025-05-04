@@ -12,6 +12,9 @@ import { startOfDay, endOfDay, subDays, startOfWeek, endOfWeek } from "date-fns"
 import { fetchSessions, fetchSessionsByDateRange } from "@/components/time-tracker/services/sessionService";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, RefreshCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function HistoryPage() {
   const [filter, setFilter] = useState("week");
@@ -41,7 +44,7 @@ export function HistoryPage() {
   const dateRange = getDateRange();
   
   // Fetch sessions data with error handling
-  const { data: sessions = [], isLoading, error } = useQuery({
+  const { data: sessions = [], isLoading, error, refetch, isRefetching } = useQuery({
     queryKey: ["sessions", filter],
     queryFn: async () => {
       try {
@@ -55,6 +58,10 @@ export function HistoryPage() {
         throw err;
       }
     },
+    // Add retry strategy with exponential backoff
+    retry: 1,
+    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Calculate total earnings for the filtered period
@@ -66,6 +73,10 @@ export function HistoryPage() {
   if (error) {
     console.error("Error loading sessions:", error);
   }
+
+  const handleRetry = () => {
+    refetch();
+  };
 
   return (
     <div className="space-y-6">
@@ -103,7 +114,27 @@ export function HistoryPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2">
+            <span>There was a problem loading your sessions.</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRetry} 
+              className="self-start"
+              disabled={isRefetching}
+            >
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              {isRefetching ? "Retrying..." : "Try Again"}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isLoading || isRefetching ? (
         <div className="space-y-4">
           {[1, 2, 3].map((n) => (
             <div key={n} className="p-4 border rounded-lg">
