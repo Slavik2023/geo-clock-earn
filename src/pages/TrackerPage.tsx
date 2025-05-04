@@ -5,7 +5,7 @@ import { TimerButton } from "@/components/time-tracker/TimerButton";
 import { EnhancedLocationCheck } from "@/components/time-tracker/EnhancedLocationCheck";
 import { EarningsCard } from "@/components/time-tracker/EarningsCard";
 import { CurrentLocationCard } from "@/components/time-tracker/CurrentLocationCard";
-import { useTimeTracking } from "@/hooks/useTimeTracking";
+import { useTimeTracking } from "@/hooks/time-tracking";
 import { LunchBreakButton } from "@/components/time-tracker/LunchBreakButton";
 
 export function TrackerPage() {
