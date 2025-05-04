@@ -59,13 +59,18 @@ export function useTeams() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      // First create the team
-      const { data, error } = await supabase.rpc<{
-        id: string;
-        company_name: string;
-        subscription_plan: string;
-        created_at: string;
-      }>(
+      // First create the team - Fixing type arguments here
+      const { data, error } = await supabase.rpc<
+        // This is the return type from the function
+        Array<{
+          id: string;
+          company_name: string;
+          subscription_plan: string;
+          created_at: string;
+        }>, 
+        // This is the parameters type
+        { company_name_param: string; user_id_param: string }
+      >(
         'create_team_with_member',
         { 
           company_name_param: companyName,
