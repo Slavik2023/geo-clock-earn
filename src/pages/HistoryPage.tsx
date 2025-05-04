@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, BarChart2, ClipboardListIcon } from "lucide-react";
 import { AnalyticsCard } from "@/components/time-tracker/AnalyticsCard";
+import { DateRange } from "react-day-picker";
 
 export function HistoryPage() {
   const [sessions, setSessions] = useState<WorkSession[]>([]);
@@ -17,11 +18,8 @@ export function HistoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("sessions");
   
-  // Date filtering
-  const [dateRange, setDateRange] = useState<{
-    from: Date;
-    to: Date;
-  }>({
+  // Date filtering - updated state type to use DateRange
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
     to: new Date(),
   });
@@ -33,10 +31,19 @@ export function HistoryPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const from = startOfDay(dateRange.from);
-        const to = endOfDay(dateRange.to);
-        const data = await fetchSessionsByDateRange(from, to);
-        setSessions(data);
+        // Check if both from and to dates are set before fetching
+        if (dateRange.from && dateRange.to) {
+          const from = startOfDay(dateRange.from);
+          const to = endOfDay(dateRange.to);
+          const data = await fetchSessionsByDateRange(from, to);
+          setSessions(data);
+        } else if (dateRange.from) {
+          // If only from date is set, use it for both start and end
+          const from = startOfDay(dateRange.from);
+          const to = endOfDay(dateRange.from);
+          const data = await fetchSessionsByDateRange(from, to);
+          setSessions(data);
+        }
       } catch (err) {
         setError("Failed to load sessions");
         console.error("Error loading sessions:", err);
@@ -78,13 +85,14 @@ export function HistoryPage() {
                 initialFocus
                 mode="range"
                 selected={dateRange}
-                onSelect={(range) => {
-                  if (range && range.from && range.to) {
-                    setDateRange(range);
+                onSelect={(newRange) => {
+                  if (newRange) {
+                    setDateRange(newRange);
                     setCalendarOpen(false);
                   }
                 }}
                 numberOfMonths={2}
+                className="pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
