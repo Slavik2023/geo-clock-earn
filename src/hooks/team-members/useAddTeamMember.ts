@@ -21,16 +21,15 @@ export function useAddTeamMember() {
         throw new Error('You need admin privileges to add team members');
       }
       
-      // Using a non-generic query to avoid excessive type instantiation
-      const { data, error } = await supabase
+      // Complete removal of generic typing to avoid deep instantiation errors
+      const userSettingsResponse = await supabase
         .from('user_settings')
         .select('user_id')
         .eq('email', email);
         
-      if (error) throw error;
+      if (userSettingsResponse.error) throw userSettingsResponse.error;
       
-      // Explicitly cast the result to the expected type
-      const userSettings = data as UserSettingResult[] | null;
+      const userSettings = userSettingsResponse.data as Array<{ user_id: string }>;
       
       if (!userSettings || userSettings.length === 0) {
         toast({
