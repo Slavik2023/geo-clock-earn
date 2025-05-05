@@ -7,7 +7,7 @@ export function useSuperAdmin() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Break complex function into simpler steps with explicit types
+  // Further simplified with explicit types
   const setSuperAdminStatus = async (email: string): Promise<boolean> => {
     setIsLoading(true);
     
@@ -71,31 +71,27 @@ export function useSuperAdmin() {
         }
       }
       
-      // Create an audit log entry - simplifying the structure to avoid deep type nesting
+      // Create an audit log entry with completely flat structure
       let currentUserId = 'system';
       
+      // Get current user ID in a separate try block
       try {
-        const authResponse = await supabase.auth.getUser();
-        if (authResponse && authResponse.data && authResponse.data.user) {
-          currentUserId = authResponse.data.user.id;
-        }
-      } catch (authError) {
-        console.error("Error getting current user:", authError);
-        // Continue with system as default user_id
+        const { data } = await supabase.auth.getUser();
+        currentUserId = data.user?.id || 'system';
+      } catch (error) {
+        console.error("Error getting current user:", error);
       }
       
+      // Create audit log in a separate try block
       try {
-        await supabase
-          .from("audit_logs")
-          .insert({
-            user_id: currentUserId,
-            action: "set_super_admin",
-            entity_type: "user_settings",
-            details: { email: email, role: "super_admin" }
-          });
-      } catch (logError) {
-        console.error("Error creating audit log:", logError);
-        // Continue execution, log error is not critical
+        await supabase.from("audit_logs").insert([{
+          user_id: currentUserId,
+          action: "set_super_admin",
+          entity_type: "user_settings",
+          details: { email, role: "super_admin" }
+        }]);
+      } catch (error) {
+        console.error("Error creating audit log:", error);
       }
       
       toast({
