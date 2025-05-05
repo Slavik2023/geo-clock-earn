@@ -10,6 +10,7 @@ export function useSuperAdmin() {
   // Explicitly define the return type to prevent deep type instantiation
   const setSuperAdminStatus = async (email: string): Promise<boolean> => {
     setIsLoading(true);
+    
     try {
       // First, get the user ID by email
       const { data: users, error: userError } = await supabase
@@ -71,11 +72,11 @@ export function useSuperAdmin() {
       }
       
       // Create an audit log entry
-      // Get the current user ID without chaining directly
+      // Break up the chained operations to avoid excessive type nesting
       const userResponse = await supabase.auth.getUser();
-      const currentUserId = userResponse.data.user?.id || 'system';
+      const currentUserId = userResponse?.data?.user?.id || 'system';
       
-      await supabase
+      const { error: logError } = await supabase
         .from("audit_logs")
         .insert({
           user_id: currentUserId,
@@ -83,6 +84,10 @@ export function useSuperAdmin() {
           entity_type: "user_settings",
           details: { email: email, role: "super_admin" }
         });
+      
+      if (logError) {
+        console.error("Error creating audit log:", logError);
+      }
       
       toast({
         title: "Успех",
