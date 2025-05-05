@@ -7,7 +7,6 @@ export function useSuperAdmin() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Further simplified with explicit types
   const setSuperAdminStatus = async (email: string): Promise<boolean> => {
     setIsLoading(true);
     
@@ -71,28 +70,22 @@ export function useSuperAdmin() {
         }
       }
       
-      // Create an audit log entry with completely flat structure
+      // Create audit log with flat structure
       let currentUserId = 'system';
       
-      // Get current user ID in a separate try block
-      try {
-        const { data } = await supabase.auth.getUser();
-        currentUserId = data.user?.id || 'system';
-      } catch (error) {
-        console.error("Error getting current user:", error);
+      // Get current user ID in a simple way
+      const { data } = await supabase.auth.getUser();
+      if (data && data.user) {
+        currentUserId = data.user.id;
       }
       
-      // Create audit log in a separate try block
-      try {
-        await supabase.from("audit_logs").insert([{
-          user_id: currentUserId,
-          action: "set_super_admin",
-          entity_type: "user_settings",
-          details: { email, role: "super_admin" }
-        }]);
-      } catch (error) {
-        console.error("Error creating audit log:", error);
-      }
+      // Create audit log with minimal nesting
+      await supabase.from("audit_logs").insert({
+        user_id: currentUserId,
+        action: "set_super_admin",
+        entity_type: "user_settings",
+        details: { email, role: "super_admin" }
+      });
       
       toast({
         title: "Успех",
