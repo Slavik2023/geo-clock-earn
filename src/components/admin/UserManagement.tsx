@@ -171,14 +171,22 @@ export function UserManagement() {
 
   const toggleBlockUser = async (userId: string, isCurrentlyBlocked: boolean) => {
     try {
-      const bannedUntil = isCurrentlyBlocked ? null : '2100-01-01';
-      
-      const { error } = await supabase.auth.admin.updateUserById(
-        userId,
-        { banned_until: bannedUntil }
-      );
-
-      if (error) throw error;
+      // Instead of using banned_until directly, we use the admin API correctly
+      if (isCurrentlyBlocked) {
+        // Unblock user
+        const { error } = await supabase.auth.admin.updateUserById(userId, {
+          user_metadata: { blocked: false } 
+        });
+        
+        if (error) throw error;
+      } else {
+        // Block user
+        const { error } = await supabase.auth.admin.updateUserById(userId, {
+          user_metadata: { blocked: true }
+        });
+        
+        if (error) throw error;
+      }
 
       toast({
         title: "Успех",
