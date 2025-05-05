@@ -1,5 +1,6 @@
 
 import { renderHook, act } from '@testing-library/react-hooks';
+import '@testing-library/jest-dom';
 import { useUserManagement } from '@/hooks/useUserManagement';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';

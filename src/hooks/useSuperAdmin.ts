@@ -13,12 +13,25 @@ export function useSuperAdmin() {
       const { data } = await supabase.auth.getUser();
       const currentUserId = data?.user?.id || 'system';
       
-      // Define audit log structure first to avoid deep type issues
-      const auditLogData = {
+      // Define audit log structure with explicit typing to avoid deep type issues
+      type AuditLogData = {
+        user_id: string;
+        action: string;
+        entity_type: string;
+        details: {
+          email: string;
+          role: string;
+        };
+      };
+      
+      const auditLogData: AuditLogData = {
         user_id: currentUserId,
         action: "set_super_admin",
         entity_type: "user_settings",
-        details: { email, role: "super_admin" }
+        details: { 
+          email, 
+          role: "super_admin" 
+        }
       };
       
       // Create the audit log entry

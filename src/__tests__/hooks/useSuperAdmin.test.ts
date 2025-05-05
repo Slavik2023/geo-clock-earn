@@ -1,5 +1,6 @@
 
 import { renderHook, act } from '@testing-library/react-hooks';
+import '@testing-library/jest-dom';
 import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -214,7 +215,7 @@ describe('useSuperAdmin hook', () => {
     });
   });
 
-  // Fix for the infinite type instantiation error in useSuperAdmin
+  // Test for the audit log creation
   it('should properly handle audit log creation', async () => {
     // Mock successful audit log insertion
     const mockAuditLogInsert = jest.fn().mockResolvedValue({

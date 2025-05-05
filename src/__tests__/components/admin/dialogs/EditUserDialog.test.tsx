@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { EditUserDialog } from '@/components/admin/dialogs/EditUserDialog';
 import { UserInfo } from '@/components/admin/types';
 import userEvent from '@testing-library/user-event';
