@@ -7,11 +7,33 @@ export function useSuperAdmin() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
+  // Define a simple type for user data to avoid excessive type inference
+  type UserData = { user_id: string } | null;
+
+  // Create audit log as a separate function with explicit Promise return type
+  const createAuditLog = async (email: string): Promise<void> => {
+    try {
+      // Get current user ID with explicit typing
+      const { data: userData } = await supabase.auth.getUser();
+      const currentUserId: string = userData?.user?.id || 'system';
+      
+      // Create audit log with explicit type annotations
+      await supabase.from("audit_logs").insert({
+        user_id: currentUserId,
+        action: "set_super_admin",
+        entity_type: "user_settings",
+        details: { email, role: "super_admin" }
+      });
+    } catch (logError) {
+      console.error("Error creating audit log:", logError);
+    }
+  };
+
   const setSuperAdminStatus = async (email: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      // First, get the user ID by email
+      // First, get the user ID by email with explicit type annotation
       const { data: users, error: userError } = await supabase
         .from("user_settings")
         .select("user_id")
@@ -21,9 +43,10 @@ export function useSuperAdmin() {
         throw userError;
       }
       
+      // Handle case when user is not found
       if (!users || users.length === 0) {
         // User not found, create a record for this email in user_settings
-        // First, try to get the user ID from auth.users
+        // Get the user ID from auth.users
         const { data: authData, error: authError } = await supabase
           .rpc("get_user_id_by_email", { email_param: email });
         
@@ -36,7 +59,7 @@ export function useSuperAdmin() {
           return false;
         }
         
-        // Create the user settings record with super admin privileges
+        // Create the user settings record with admin privileges
         const { error: insertError } = await supabase
           .from("user_settings")
           .insert({
@@ -70,7 +93,7 @@ export function useSuperAdmin() {
         }
       }
       
-      // Log the action separately from the main flow to avoid deep nesting
+      // Create audit log separately to avoid complex nesting
       await createAuditLog(email);
       
       toast({
@@ -89,26 +112,6 @@ export function useSuperAdmin() {
       return false;
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Separate function to create audit log to reduce nesting
-  const createAuditLog = async (email: string): Promise<void> => {
-    try {
-      // Get current user ID
-      const authResponse = await supabase.auth.getUser();
-      const currentUserId = authResponse.data?.user?.id || 'system';
-      
-      // Create audit log
-      await supabase.from("audit_logs").insert({
-        user_id: currentUserId,
-        action: "set_super_admin",
-        entity_type: "user_settings",
-        details: { email, role: "super_admin" }
-      });
-    } catch (logError) {
-      // Just log the error but don't fail the main operation
-      console.error("Error creating audit log:", logError);
     }
   };
 
