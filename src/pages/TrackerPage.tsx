@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Clock } from "@/components/time-tracker/Clock";
 import { TimerButton } from "@/components/time-tracker/TimerButton";
 import { EnhancedLocationCheck } from "@/components/time-tracker/EnhancedLocationCheck";
@@ -7,6 +7,7 @@ import { EarningsCard } from "@/components/time-tracker/EarningsCard";
 import { CurrentLocationCard } from "@/components/time-tracker/CurrentLocationCard";
 import { useTimeTracking } from "@/hooks/time-tracking";
 import { LunchBreakButton } from "@/components/time-tracker/LunchBreakButton";
+import { toast } from "sonner";
 
 export function TrackerPage() {
   const [isLocationVerified, setIsLocationVerified] = useState(false);
@@ -25,6 +26,14 @@ export function TrackerPage() {
     startLunchBreak,
     totalBreakTime
   } = useTimeTracking({ isLocationVerified });
+
+  // Automatically verify location if one is detected
+  useEffect(() => {
+    if (locationDetails && !isLocationVerified) {
+      setIsLocationVerified(true);
+      toast.success("Местоположение определено");
+    }
+  }, [locationDetails, isLocationVerified]);
 
   const onLocationVerified = (verified: boolean, details?: any) => {
     setIsLocationVerified(verified);

@@ -1,71 +1,88 @@
 
-import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Clock, HistoryIcon, Home, Settings } from "lucide-react";
+import { Home, Clock, History, User, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/App";
 
 export function BottomNav() {
   const location = useLocation();
-  const [mounted, setMounted] = useState(false);
-
+  const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Check if user is admin
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
+    const checkAdminStatus = async () => {
+      if (!user) return;
+      
+      try {
+        const { data } = await supabase
+          .from("user_settings")
+          .select("is_admin")
+          .eq("user_id", user.id)
+          .single();
+        
+        setIsAdmin(data?.is_admin || false);
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+      }
+    };
+    
+    checkAdminStatus();
+  }, [user]);
+  
+  const navItems = [
+    {
+      label: "Home",
+      path: "/",
+      icon: <Home className="h-5 w-5" />
+    },
+    {
+      label: "Tracker",
+      path: "/tracker",
+      icon: <Clock className="h-5 w-5" />
+    },
+    {
+      label: "History",
+      path: "/history",
+      icon: <History className="h-5 w-5" />
+    },
+    {
+      label: "Profile",
+      path: "/profile",
+      icon: <User className="h-5 w-5" />
+    }
+  ];
+  
+  // Add admin link if user is admin
+  if (isAdmin) {
+    navItems.push({
+      label: "Admin",
+      path: "/admin",
+      icon: <Settings className="h-5 w-5" />
+    });
+  }
 
   return (
-    <div className="fixed bottom-0 w-full border-t bg-background px-2 py-2">
+    <div className="fixed bottom-0 left-0 right-0 border-t bg-background z-10">
       <nav className="flex items-center justify-around">
-        <NavItem 
-          to="/" 
-          icon={<Home size={24} />} 
-          label="Home" 
-          isActive={location.pathname === "/"} 
-        />
-        <NavItem 
-          to="/tracker" 
-          icon={<Clock size={24} />} 
-          label="Timer" 
-          isActive={location.pathname === "/tracker"} 
-        />
-        <NavItem 
-          to="/history" 
-          icon={<HistoryIcon size={24} />} 
-          label="History" 
-          isActive={location.pathname === "/history"} 
-        />
-        <NavItem 
-          to="/profile" 
-          icon={<Settings size={24} />} 
-          label="Settings" 
-          isActive={location.pathname === "/profile"} 
-        />
+        {navItems.map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={cn(
+              "flex flex-1 flex-col items-center py-2 text-xs",
+              location.pathname === item.path
+                ? "text-primary"
+                : "text-muted-foreground"
+            )}
+          >
+            {item.icon}
+            <span className="mt-1">{item.label}</span>
+          </Link>
+        ))}
       </nav>
     </div>
-  );
-}
-
-interface NavItemProps {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  isActive: boolean;
-}
-
-function NavItem({ to, icon, label, isActive }: NavItemProps) {
-  return (
-    <Link 
-      to={to} 
-      className={cn(
-        "flex flex-col items-center justify-center px-2 py-1 rounded-md transition-colors",
-        isActive 
-          ? "text-brand-blue" 
-          : "text-gray-500 hover:text-brand-blue-400"
-      )}
-    >
-      {icon}
-      <span className="text-xs mt-1">{label}</span>
-    </Link>
   );
 }

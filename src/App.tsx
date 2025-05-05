@@ -9,6 +9,7 @@ import { HomePage } from "@/pages/HomePage";
 import { TrackerPage } from "@/pages/TrackerPage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { ProfilePage } from "@/pages/ProfilePage";
+import { AdminPage } from "@/pages/AdminPage";
 import { AuthPage } from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import { useEffect, useState, createContext, useContext } from "react";
@@ -116,6 +117,7 @@ const App = () => (
               <Route path="tracker" element={<TrackerPage />} />
               <Route path="history" element={<HistoryPage />} />
               <Route path="profile" element={<ProfilePage />} />
+              <Route path="admin" element={<AdminPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

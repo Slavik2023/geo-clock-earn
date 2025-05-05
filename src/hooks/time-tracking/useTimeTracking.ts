@@ -1,62 +1,83 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
-import { UseTimeTrackingProps } from "./types";
-import { useLunchBreak } from "./useLunchBreak";
+import { useAuth } from "@/App";
 import { useTimerStorage } from "./useTimerStorage";
-import { useUserRates } from "./useUserRates";
 import { useSessionManagement } from "./useSessionManagement";
+import { useLunchBreak } from "./useLunchBreak";
+import { useUserRates } from "./useUserRates";
+import { fetchAddressFromCoordinates } from "@/components/time-tracker/map/OpenStreetMapUtils";
+import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
+import { toast } from "sonner";
 
-export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
-  const { toast } = useToast();
+interface UseTimeTrackingProps {
+  isLocationVerified: boolean;
+}
+
+export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) => {
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [locationDetails, setLocationDetails] = useState<LocationDetails | null>(null);
   
-  // Get the timer storage state
+  // Auto-detect location on initial load
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          try {
+            const addressDetails = await fetchAddressFromCoordinates(latitude, longitude);
+            
+            if (addressDetails) {
+              setLocationDetails({
+                address: addressDetails.address,
+                latitude: latitude,
+                longitude: longitude,
+                hourly_rate: 25, // Default rate
+                street: addressDetails.street || null,
+                city: addressDetails.city || null,
+                state: addressDetails.state || null,
+                zip_code: addressDetails.zipCode || null
+              });
+            }
+          } catch (error) {
+            console.error("Error getting location details:", error);
+          }
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          toast.error("Невозможно определить местоположение. Пожалуйста, разрешите доступ к геолокации.");
+        }
+      );
+    }
+  }, []);
+
   const {
     startTime,
     setStartTime,
     currentSessionId,
     setCurrentSessionId,
-    locationDetails,
-    setLocationDetails,
     isTracking,
     setIsTracking,
     saveTimerSession,
     saveSessionId,
     clearTimerStorage
   } = useTimerStorage();
-  
-  // Get the lunch break functionality
-  const {
-    lunchBreakActive,
-    lunchBreakStart,
+
+  const { hourlyRate, overtimeRate, overtimeThreshold } = useUserRates();
+
+  const { 
     totalBreakTime,
-    startLunchBreak,
-    endLunchBreak,
-    resetBreakTime
-  } = useLunchBreak({ isTracking });
-  
-  // Get user rates
+    lunchBreakActive,
+    startLunchBreak
+  } = useLunchBreak({ isRunning: isTracking });
+
   const {
-    hourlyRate,
-    setHourlyRate,
-    overtimeRate,
-    setOvertimeRate,
-    overtimeThreshold,
-    setOvertimeThreshold
-  } = useUserRates(userId);
-  
-  // Get session management
-  const {
-    endTime,
-    setEndTime,
     createSession,
     completeSession
   } = useSessionManagement({
-    userId,
+    userId: user?.id || null,
     locationDetails,
     hourlyRate,
     overtimeRate,
@@ -65,145 +86,65 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
     startTime,
     currentSessionId
   });
-  
-  // Get current user
-  useEffect(() => {
-    async function getUserId() {
-      const { data } = await supabase.auth.getUser();
-      if (data.user) {
-        setUserId(data.user.id);
-      }
-    }
-    
-    getUserId();
-  }, []);
 
-  // Update hourly rate from location details when tracking starts
-  useEffect(() => {
-    if (locationDetails) {
-      if (locationDetails.hourly_rate) {
-        setHourlyRate(locationDetails.hourly_rate);
-      }
-      
-      if (locationDetails.overtime_rate) {
-        setOvertimeRate(locationDetails.overtime_rate);
-      } else if (locationDetails.hourly_rate) {
-        // Default overtime rate is 1.5x the hourly rate
-        setOvertimeRate(locationDetails.hourly_rate * 1.5);
-      }
-    }
-  }, [locationDetails]);
-
-  const handleLocationVerified = (verified: boolean, details?: LocationDetails) => {
+  const handleLocationVerified = (verified: boolean, details?: any) => {
     if (verified && details) {
       setLocationDetails(details);
-      if (details.hourly_rate) {
-        setHourlyRate(details.hourly_rate);
-        setOvertimeRate(details.overtime_rate || details.hourly_rate * 1.5);
-      }
-    } else if (!verified) {
-      toast({
-        variant: "destructive",
-        title: "Location Not Verified",
-        description: "Please enable location services to use time tracking."
-      });
     }
   };
 
   const handleToggleTimer = async () => {
-    if (!userId) {
-      toast({
-        variant: "destructive",
-        title: "Authentication Required",
-        description: "You must be signed in to track time."
-      });
-      return;
-    }
-    
-    if (!isLocationVerified && !isTracking) {
-      toast({
-        variant: "destructive",
-        title: "Location Required",
-        description: "Your location must be verified before tracking time."
-      });
-      return;
-    }
-
     setIsLoading(true);
 
     try {
       if (!isTracking) {
-        // Start tracking
+        // Starting the timer
         const now = new Date();
         setStartTime(now);
         setIsTracking(true);
-        resetBreakTime();
         
-        // Save to localStorage
+        // Save to local storage first
         saveTimerSession(now, locationDetails);
         
-        // Create a new session in the database
-        if (locationDetails) {
+        // Then create the session in the database if user is logged in
+        if (user?.id) {
           const sessionId = await createSession(now);
           if (sessionId) {
             saveSessionId(sessionId);
           }
         }
         
-        toast({
-          title: "Time Tracking Started",
-          description: `Started at ${now.toLocaleTimeString()} at ${locationDetails?.name || locationDetails?.address || 'current location'}`,
-        });
+        toast.success("Таймер запущен");
       } else {
-        // End the current lunch break if active
-        if (lunchBreakActive) {
-          endLunchBreak();
-        }
-        
-        // Stop tracking
+        // Stopping the timer
         const now = new Date();
-        setEndTime(now);
-        setIsTracking(false);
         
-        // Complete the current session
-        const result = await completeSession(now);
-        
-        if (result && typeof result !== 'boolean') {
-          const { totalEarnings, overtimeEarnings, totalBreakTime } = result;
+        // Complete the session in the database
+        if (user?.id && currentSessionId) {
+          const result = await completeSession(now);
           
-          // Prepare toast message with overtime details if applicable
-          let earningsMessage = `You earned $${totalEarnings.toFixed(2)} for this session.`;
-          if (overtimeEarnings > 0) {
-            earningsMessage = `You earned $${totalEarnings.toFixed(2)} (includes $${overtimeEarnings.toFixed(2)} overtime) for this session.`;
+          if (result) {
+            const { totalEarnings, overtimeEarnings } = result;
+            
+            toast.success(
+              `Таймер остановлен. Заработано: ${totalEarnings.toFixed(2)} ${overtimeEarnings > 0 ? `(включая ${overtimeEarnings.toFixed(2)} за сверхурочные)` : ""}`
+            );
+          } else {
+            toast.error("Ошибка при завершении сессии");
           }
-          
-          if (totalBreakTime > 0) {
-            earningsMessage += ` Total break time: ${totalBreakTime} minutes.`;
-          }
-          
-          toast({
-            title: "Time Tracking Stopped",
-            description: earningsMessage,
-          });
+        } else {
+          toast.success("Таймер остановлен");
         }
         
-        // Clear the active timer
+        // Reset state
+        setStartTime(null);
+        setCurrentSessionId(null);
+        setIsTracking(false);
         clearTimerStorage();
-        
-        // After a short delay, reset the start time
-        setTimeout(() => {
-          setStartTime(null);
-          setCurrentSessionId(null);
-          resetBreakTime();
-        }, 3000);
       }
     } catch (error) {
-      console.error("Time tracking error:", error);
-      toast({
-        variant: "destructive",
-        title: `Error ${isTracking ? "Stopping" : "Starting"} Timer`,
-        description: "There was an error with the time tracking operation."
-      });
+      console.error("Error toggling timer:", error);
+      toast.error("Произошла ошибка. Пожалуйста, попробуйте снова.");
     } finally {
       setIsLoading(false);
     }
@@ -221,7 +162,6 @@ export function useTimeTracking({ isLocationVerified }: UseTimeTrackingProps) {
     handleToggleTimer,
     lunchBreakActive,
     startLunchBreak,
-    endLunchBreak,
     totalBreakTime
   };
-}
+};
