@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { LocationDetails } from "@/components/time-tracker/EnhancedLocationCheck";
+import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
 
 export function useTimerStorage() {
   const [startTime, setStartTime] = useState<Date | null>(null);

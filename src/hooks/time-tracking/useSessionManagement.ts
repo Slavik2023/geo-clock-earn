@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { LocationDetails } from "@/components/time-tracker/EnhancedLocationCheck";
+import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
 
 interface UseSessionManagementProps {
   userId: string | null;
