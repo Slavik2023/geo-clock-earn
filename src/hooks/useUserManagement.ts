@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UserFormData, UserInfo } from "@/components/admin/types";
+import { UserRoleType } from "./user-settings/useUserRole";
 
 export function useUserManagement() {
   const { toast } = useToast();
@@ -61,11 +62,12 @@ export function useUserManagement() {
         // Create a properly-typed UserInfo object
         return {
           id: settings.user_id,
-          email: settings.email || settings.user_id, 
+          // Use the email from settings or fallback to user_id
+          email: settings.email || `user-${settings.user_id}`, 
           createdAt: new Date().toISOString(),
           name: settings.name || "",
           isAdmin: settings.is_admin || settings.role === 'admin' || settings.role === 'super_admin',
-          role: settings.role || "user",
+          role: settings.role as UserRoleType || "user",
           hourlyRate: settings.hourly_rate || 25,
           isBlocked: settings.role === "blocked" || false
         };
@@ -94,7 +96,7 @@ export function useUserManagement() {
         .from("user_settings")
         .update({ 
           is_admin: !isCurrentlyAdmin,
-          role: newRole
+          role: newRole as UserRoleType
         })
         .eq("user_id", userId);
 
@@ -123,7 +125,7 @@ export function useUserManagement() {
       const { error } = await supabase
         .from("user_settings")
         .update({ 
-          role: isCurrentlyBlocked ? "user" : "blocked"
+          role: isCurrentlyBlocked ? "user" as UserRoleType : "blocked" as UserRoleType
         })
         .eq("user_id", userId);
           
@@ -157,7 +159,7 @@ export function useUserManagement() {
       // Update user_settings to mark as deleted
       const { error } = await supabase
         .from("user_settings")
-        .update({ role: "deleted" })
+        .update({ role: "deleted" as UserRoleType })
         .eq("user_id", userToDelete);
   
       if (error) throw error;
@@ -195,7 +197,7 @@ export function useUserManagement() {
         .from("user_settings")
         .update({
           name: data.name,
-          role: data.role,
+          role: data.role as UserRoleType,
           hourly_rate: data.hourlyRate,
           is_admin: data.isAdmin
         })
@@ -213,7 +215,6 @@ export function useUserManagement() {
     } catch (error) {
       console.error("Error updating user:", error);
       toast({
-        variant: "destructive",
         title: "Error",
         description: "Failed to update user information"
       });

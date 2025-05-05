@@ -1,13 +1,15 @@
 
+import { UserRoleType } from "@/hooks/user-settings/useUserRole";
+
 export interface UserInfo {
   id: string;
-  email: string | null;
+  email: string;
+  name: string;
   createdAt: string;
-  name: string | null;
   isAdmin: boolean;
-  role: string;
+  role: UserRoleType;
   hourlyRate: number;
-  isBlocked?: boolean;
+  isBlocked: boolean;
 }
 
 export interface UserFormData {

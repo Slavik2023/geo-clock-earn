@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useUserSettings } from "@/hooks/useUserSettings";
+import { useSuperAdminProfile } from "@/hooks/user-settings/useSuperAdminProfile";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 
 export function ProfilePage() {
@@ -18,9 +19,10 @@ export function ProfilePage() {
     setEnableLocationVerification,
     enableOvertimeCalculation,
     setEnableOvertimeCalculation,
-    saveSettings,
-    createSuperAdminProfile
+    saveSettings
   } = useUserSettings();
+  
+  const { createSuperAdminProfile } = useSuperAdminProfile();
   
   // Add a handler function that properly handles the button click event
   const handleCreateSuperAdmin = (e: React.MouseEvent<HTMLButtonElement>) => {
