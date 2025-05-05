@@ -1,5 +1,5 @@
 
-import { LocationDetails } from "@/components/time-tracker/EnhancedLocationCheck";
+import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
 
 export interface UseTimeTrackingProps {
   isLocationVerified: boolean;

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { LocationDetails } from "@/components/time-tracker/EnhancedLocationCheck";
+import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
 import { UseTimeTrackingProps } from "./types";
 import { useLunchBreak } from "./useLunchBreak";
 import { useTimerStorage } from "./useTimerStorage";
