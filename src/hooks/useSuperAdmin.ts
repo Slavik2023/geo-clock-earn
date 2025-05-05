@@ -7,7 +7,7 @@ export function useSuperAdmin() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Explicitly define the return type to prevent deep type instantiation
+  // Break complex function into simpler steps with explicit types
   const setSuperAdminStatus = async (email: string): Promise<boolean> => {
     setIsLoading(true);
     
@@ -71,22 +71,31 @@ export function useSuperAdmin() {
         }
       }
       
-      // Create an audit log entry
-      // Break up the chained operations to avoid excessive type nesting
-      const userResponse = await supabase.auth.getUser();
-      const currentUserId = userResponse?.data?.user?.id || 'system';
+      // Create an audit log entry - simplifying the structure to avoid deep type nesting
+      let currentUserId = 'system';
       
-      const { error: logError } = await supabase
-        .from("audit_logs")
-        .insert({
-          user_id: currentUserId,
-          action: "set_super_admin",
-          entity_type: "user_settings",
-          details: { email: email, role: "super_admin" }
-        });
+      try {
+        const authResponse = await supabase.auth.getUser();
+        if (authResponse && authResponse.data && authResponse.data.user) {
+          currentUserId = authResponse.data.user.id;
+        }
+      } catch (authError) {
+        console.error("Error getting current user:", authError);
+        // Continue with system as default user_id
+      }
       
-      if (logError) {
+      try {
+        await supabase
+          .from("audit_logs")
+          .insert({
+            user_id: currentUserId,
+            action: "set_super_admin",
+            entity_type: "user_settings",
+            details: { email: email, role: "super_admin" }
+          });
+      } catch (logError) {
         console.error("Error creating audit log:", logError);
+        // Continue execution, log error is not critical
       }
       
       toast({
