@@ -7,7 +7,7 @@ export function useSuperAdmin() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const setSuperAdminStatus = async (email: string) => {
+  const setSuperAdminStatus = async (email: string): Promise<boolean> => {
     setIsLoading(true);
     try {
       // First, get the user ID by email
@@ -70,10 +70,11 @@ export function useSuperAdmin() {
       }
       
       // Create an audit log entry
+      const currentUser = await supabase.auth.getUser();
       await supabase
         .from("audit_logs")
         .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: currentUser.data.user?.id || 'system',
           action: "set_super_admin",
           entity_type: "user_settings",
           details: { email: email, role: "super_admin" }
