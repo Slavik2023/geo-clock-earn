@@ -3,8 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 interface UseGoogleMapsProps {
-  apiKey: string;
-  onMapLoad?: (map: google.maps.Map, marker: google.maps.Marker) => void;
+  apiKey?: string;
+  onMapLoad?: () => void;
 }
 
 interface SelectedLocation {
@@ -13,129 +13,20 @@ interface SelectedLocation {
   longitude: number;
 }
 
-export function useGoogleMaps({ apiKey, onMapLoad }: UseGoogleMapsProps) {
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [marker, setMarker] = useState<google.maps.Marker | null>(null);
-  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+export function useGoogleMaps({ onMapLoad }: UseGoogleMapsProps) {
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [serviceLoaded, setServiceLoaded] = useState(false);
 
   const loadGoogleMapsApi = () => {
-    if (!apiKey) return;
+    // We're now using a free service, so just set loaded to true
+    setServiceLoaded(true);
     
-    // Check if API is already loaded
-    if (window.google && window.google.maps) {
-      setGoogleMapsLoaded(true);
-      initializeMap();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    
-    script.onload = () => {
-      setGoogleMapsLoaded(true);
-      initializeMap();
-    };
-    
-    script.onerror = () => {
-      toast.error("Failed to load Google Maps. Please check your API key.");
-    };
-    
-    document.head.appendChild(script);
-  };
-
-  const initializeMap = () => {
-    if (!mapRef.current || !window.google) return;
-
-    // Initialize the map
-    const newMap = new google.maps.Map(mapRef.current, {
-      center: { lat: 40.7128, lng: -74.006 },
-      zoom: 13,
-      mapTypeControl: false,
-    });
-
-    setMap(newMap);
-
-    // Create a marker for the selected location
-    const newMarker = new google.maps.Marker({
-      map: newMap,
-      draggable: true,
-      position: newMap.getCenter(),
-    });
-
-    setMarker(newMarker);
-
-    // Handle marker drag end
-    newMarker.addListener("dragend", () => {
-      const position = newMarker.getPosition();
-      if (position) {
-        const lat = position.lat();
-        const lng = position.lng();
-        
-        // Get address for the new position
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-          if (status === "OK" && results && results[0]) {
-            const address = results[0].formatted_address;
-            setSelectedLocation({
-              address,
-              latitude: lat,
-              longitude: lng,
-            });
-          }
-        });
-      }
-    });
-
-    // Initialize search box
-    initializeSearchBox(newMap, newMarker);
-
-    // Call onMapLoad callback if provided
+    // Call the onMapLoad callback if provided
     if (onMapLoad) {
-      onMapLoad(newMap, newMarker);
-    }
-  };
-
-  const initializeSearchBox = (newMap: google.maps.Map, newMarker: google.maps.Marker) => {
-    if (searchInputRef.current) {
-      const searchBox = new google.maps.places.SearchBox(searchInputRef.current);
-      
-      // Position the search input outside the map control system
-      if (searchInputRef.current) {
-        searchInputRef.current.style.position = "relative";
-        searchInputRef.current.style.zIndex = "10";
-        searchInputRef.current.style.margin = "10px auto";
-        searchInputRef.current.style.display = "block";
-      }
-      
-      // Listen for the event fired when the user selects a prediction
-      searchBox.addListener("places_changed", () => {
-        const places = searchBox.getPlaces();
-        
-        if (!places || places.length === 0) return;
-        
-        const place = places[0];
-        
-        if (!place.geometry || !place.geometry.location) return;
-        
-        // Update marker and map
-        newMarker.setPosition(place.geometry.location);
-        newMap.setCenter(place.geometry.location);
-        
-        const lat = place.geometry.location.lat();
-        const lng = place.geometry.location.lng();
-        
-        setSelectedLocation({
-          address: place.formatted_address || "",
-          latitude: lat,
-          longitude: lng,
-        });
-      });
+      onMapLoad();
     }
   };
 
@@ -148,27 +39,33 @@ export function useGoogleMaps({ apiKey, onMapLoad }: UseGoogleMapsProps) {
     setIsLocating(true);
     
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const pos = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
         
-        if (map && marker) {
-          map.setCenter(pos);
-          marker.setPosition(pos);
+        try {
+          // Use a free reverse geocoding service or simple formatting
+          const address = `Location (${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)})`;
           
-          // Get address for the current location
-          const geocoder = new google.maps.Geocoder();
-          geocoder.geocode({ location: pos }, (results, status) => {
-            if (status === "OK" && results && results[0]) {
-              const address = results[0].formatted_address;
-              setSelectedLocation({
-                address,
-                latitude: pos.lat,
-                longitude: pos.lng,
-              });
-            }
+          setSelectedLocation({
+            address,
+            latitude: pos.lat,
+            longitude: pos.lng,
+          });
+          
+          updateMapMarker(pos.lat, pos.lng);
+        } catch (error) {
+          console.error("Error getting address:", error);
+          
+          // Fallback to coordinates as address
+          const fallbackAddress = `Lat: ${pos.lat.toFixed(6)}, Lng: ${pos.lng.toFixed(6)}`;
+          
+          setSelectedLocation({
+            address: fallbackAddress,
+            latitude: pos.lat,
+            longitude: pos.lng,
           });
         }
         
@@ -195,17 +92,37 @@ export function useGoogleMaps({ apiKey, onMapLoad }: UseGoogleMapsProps) {
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
+  
+  const updateMapMarker = (lat: number, lng: number) => {
+    if (mapRef.current) {
+      const mapContainer = mapRef.current;
+      mapContainer.innerHTML = "";
+      
+      const mapElement = document.createElement("div");
+      mapElement.className = "relative w-full h-full bg-blue-50";
+      
+      const markerElement = document.createElement("div");
+      markerElement.className = "absolute w-6 h-6 bg-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 border-2 border-white";
+      markerElement.innerHTML = '<div class="w-2 h-2 bg-white rounded-full m-auto mt-1.5"></div>';
+      
+      const coordsElement = document.createElement("div");
+      coordsElement.className = "absolute bottom-2 right-2 bg-white px-2 py-1 text-xs rounded-md shadow-sm";
+      coordsElement.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      
+      mapElement.appendChild(markerElement);
+      mapElement.appendChild(coordsElement);
+      mapContainer.appendChild(mapElement);
+    }
+  };
 
   return {
-    map,
-    marker,
-    googleMapsLoaded,
     selectedLocation,
     isLocating,
     mapRef,
     searchInputRef,
     loadGoogleMapsApi,
     handleGetCurrentLocation,
-    setSelectedLocation
+    setSelectedLocation,
+    googleMapsLoaded: serviceLoaded
   };
 }
