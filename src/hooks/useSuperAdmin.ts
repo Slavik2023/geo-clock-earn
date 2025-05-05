@@ -70,11 +70,14 @@ export function useSuperAdmin() {
       }
       
       // Create an audit log entry
-      const currentUser = await supabase.auth.getUser();
+      // Fix the infinite type instantiation by retrieving the user first
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id || 'system';
+      
       await supabase
         .from("audit_logs")
         .insert({
-          user_id: currentUser.data.user?.id || 'system',
+          user_id: userId,
           action: "set_super_admin",
           entity_type: "user_settings",
           details: { email: email, role: "super_admin" }
