@@ -13,8 +13,8 @@ export function useSuperAdmin() {
       const { data } = await supabase.auth.getUser();
       const currentUserId = data?.user?.id || 'system';
       
-      // Define audit log structure with explicit typing to avoid deep type issues
-      type AuditLogData = {
+      // Define explicit type for the audit log entry to avoid recursive type issue
+      interface AuditLogEntry {
         user_id: string;
         action: string;
         entity_type: string;
@@ -22,9 +22,9 @@ export function useSuperAdmin() {
           email: string;
           role: string;
         };
-      };
+      }
       
-      const auditLogData: AuditLogData = {
+      const auditLogData: AuditLogEntry = {
         user_id: currentUserId,
         action: "set_super_admin",
         entity_type: "user_settings",
@@ -51,9 +51,7 @@ export function useSuperAdmin() {
         .select("user_id")
         .eq("email", email);
       
-      if (userError) {
-        throw userError;
-      }
+      if (userError) throw userError;
       
       // Handle case when user is not found
       if (!users || users.length === 0) {
