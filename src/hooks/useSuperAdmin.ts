@@ -3,6 +3,12 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
+// Определяем интерфейс для деталей аудита, чтобы избежать рекурсивных типов
+interface AuditLogDetailsType {
+  email: string;
+  role: string;
+}
+
 export function useSuperAdmin() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -13,14 +19,9 @@ export function useSuperAdmin() {
       const { data } = await supabase.auth.getUser();
       const currentUserId = data?.user?.id || 'system';
       
-      // Define the audit log details with explicit typing
-      type AuditLogDetails = {
-        email: string;
-        role: string;
-      };
-      
-      const details: AuditLogDetails = {
-        email, 
+      // Строго типизированная структура без рекурсивных ссылок
+      const auditDetails: AuditLogDetailsType = {
+        email,
         role: "super_admin"
       };
       
@@ -29,7 +30,7 @@ export function useSuperAdmin() {
         user_id: currentUserId,
         action: "set_super_admin",
         entity_type: "user_settings",
-        details
+        details: auditDetails
       });
     } catch (logError) {
       console.error("Error creating audit log:", logError);
