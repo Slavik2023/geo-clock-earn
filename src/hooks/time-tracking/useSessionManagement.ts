@@ -32,21 +32,21 @@ export function useSessionManagement({
   const createSession = async (now: Date) => {
     if (!userId || !locationDetails) return null;
 
-    // Prepare session data without including team_id to avoid recursion issues
-    const sessionData: Record<string, any> = {
+    // Define the required fields explicitly to match the database schema
+    const sessionData = {
       user_id: userId,
       start_time: now.toISOString(),
       hourly_rate: locationDetails.hourly_rate || hourlyRate,
       address: locationDetails.address,
-      latitude: locationDetails.latitude,
-      longitude: locationDetails.longitude,
-      is_manual_entry: !locationDetails.id // If no location ID, it's a manual entry
     };
     
-    // Only add location_id if it exists to avoid null/undefined issues
-    if (locationDetails.id) {
-      sessionData.location_id = locationDetails.id;
-    }
+    // Add optional fields only if they exist
+    if (locationDetails.latitude) sessionData['latitude'] = locationDetails.latitude;
+    if (locationDetails.longitude) sessionData['longitude'] = locationDetails.longitude;
+    if (locationDetails.id) sessionData['location_id'] = locationDetails.id;
+    
+    // Set is_manual_entry based on whether there is a location ID
+    sessionData['is_manual_entry'] = !locationDetails.id;
     
     console.log("Creating session with data:", sessionData);
     

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -132,7 +131,7 @@ export function UserManagement() {
         // Create a properly-typed UserInfo object
         return {
           id: settings.user_id,
-          email: settings.email || "Unknown email", // Make sure email exists in database
+          email: settings.user_id, // Fixed: Using user_id instead of email
           createdAt: new Date().toISOString(),
           name: settings.name || "",
           isAdmin: settings.is_admin || false,
