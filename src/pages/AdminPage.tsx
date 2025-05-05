@@ -49,8 +49,8 @@ export function AdminPage() {
         console.error("Error checking admin status:", error);
         toast({
           variant: "destructive",
-          title: "Ошибка",
-          description: "Не удалось проверить права администратора"
+          title: "Error",
+          description: "Failed to verify administrator permissions"
         });
       } finally {
         setIsLoading(false);
@@ -61,7 +61,7 @@ export function AdminPage() {
   }, [user, toast]);
   
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Загрузка...</div>;
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
   
   // Redirect non-admin users
@@ -72,9 +72,9 @@ export function AdminPage() {
   return (
     <div className="space-y-6 p-2">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold">Панель администратора</h1>
+        <h1 className="text-3xl font-bold">Administrator Panel</h1>
         <p className="text-muted-foreground">
-          Управление пользователями, командами и настройками системы
+          Manage users, teams, and system settings
         </p>
       </div>
       
@@ -86,10 +86,10 @@ export function AdminPage() {
       
       <Tabs defaultValue="users">
         <TabsList>
-          <TabsTrigger value="users">Пользователи</TabsTrigger>
-          <TabsTrigger value="teams">Команды</TabsTrigger>
-          <TabsTrigger value="settings">Настройки</TabsTrigger>
-          {isSuperAdmin && <TabsTrigger value="system">Система</TabsTrigger>}
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="teams">Teams</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+          {isSuperAdmin && <TabsTrigger value="system">System</TabsTrigger>}
         </TabsList>
         <TabsContent value="users" className="space-y-4">
           <UserManagement />
@@ -104,13 +104,13 @@ export function AdminPage() {
           <TabsContent value="system" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Системные настройки</CardTitle>
+                <CardTitle>System Settings</CardTitle>
                 <CardDescription>
-                  Эти настройки доступны только главному администратору
+                  These settings are only available to the super administrator
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p>Здесь будут расположены системные настройки приложения.</p>
+                <p>System settings will be displayed here.</p>
               </CardContent>
             </Card>
           </TabsContent>

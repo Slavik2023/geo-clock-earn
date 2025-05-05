@@ -9,3 +9,5 @@ verify_jwt = true
 [functions.update-user-metadata]
 verify_jwt = true
 
+[functions.update_user_metadata]
+verify_jwt = true

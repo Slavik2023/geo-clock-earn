@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -55,11 +56,11 @@ import {
 // Form schema
 const userFormSchema = z.object({
   name: z.string().min(2, {
-    message: "Имя должно содержать не менее 2 символов",
+    message: "Name must contain at least 2 characters",
   }),
   role: z.string(),
   hourlyRate: z.coerce.number().positive({
-    message: "Ставка должна быть положительным числом",
+    message: "Rate must be a positive number",
   }),
   isAdmin: z.boolean(),
 });
@@ -94,8 +95,8 @@ export function UserManagement() {
         console.error("Auth error:", authError);
         toast({
           variant: "destructive",
-          title: "Ошибка авторизации",
-          description: "Проверьте вход в систему или обновите страницу"
+          title: "Authentication Error",
+          description: "Please check your login or refresh the page"
         });
         setUsers([]);
         return;
@@ -116,8 +117,8 @@ export function UserManagement() {
         console.error("Error fetching user settings:", settingsError);
         toast({
           variant: "destructive",
-          title: "Ошибка",
-          description: "Не удалось загрузить данные пользователей"
+          title: "Error",
+          description: "Failed to load user data"
         });
         return;
       }
@@ -128,15 +129,16 @@ export function UserManagement() {
       
       // Transform the data to the expected format
       const combinedUsers: UserInfo[] = userSettings ? userSettings.map(settings => {
+        // Create a properly-typed UserInfo object
         return {
           id: settings.user_id,
-          email: settings.email || "Unknown email", // We may need to augment this with a join
-          createdAt: new Date().toISOString(), // Use current date as fallback
+          email: settings.email || "Unknown email", // Make sure email exists in database
+          createdAt: new Date().toISOString(),
           name: settings.name || "",
           isAdmin: settings.is_admin || false,
           role: settings.role || "user",
           hourlyRate: settings.hourly_rate || 25,
-          isBlocked: false // Cannot determine this from user_settings alone
+          isBlocked: settings.role === "blocked" || false
         };
       }) : [];
 
@@ -146,8 +148,8 @@ export function UserManagement() {
       console.error("Error fetching users:", error);
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось загрузить список пользователей"
+        title: "Error",
+        description: "Failed to load user list"
       });
     } finally {
       setIsLoading(false);
@@ -168,8 +170,8 @@ export function UserManagement() {
       if (error) throw error;
 
       toast({
-        title: "Успех",
-        description: `Статус администратора ${isCurrentlyAdmin ? "отозван" : "назначен"}`
+        title: "Success",
+        description: `Admin status ${isCurrentlyAdmin ? "revoked" : "assigned"}`
       });
 
       // Refresh user list
@@ -178,68 +180,36 @@ export function UserManagement() {
       console.error("Error toggling admin status:", error);
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось изменить статус пользователя"
+        title: "Error",
+        description: "Failed to change user status"
       });
     }
   };
 
   const toggleBlockUser = async (userId: string, isCurrentlyBlocked: boolean) => {
     try {
-      // Instead of using banned_until directly, we use the admin API correctly
-      // Note: This may not work without proper service role permissions
-      try {
-        if (isCurrentlyBlocked) {
-          // Unblock user - using metadata as workaround
-          const { error } = await supabase.rpc('update_user_metadata', { 
-            user_id: userId, 
-            metadata: { blocked: false } 
-          });
+      // Instead of RPC, update the user_settings table directly
+      const { error } = await supabase
+        .from("user_settings")
+        .update({ 
+          role: isCurrentlyBlocked ? "user" : "blocked"
+        })
+        .eq("user_id", userId);
           
-          if (error) throw error;
-        } else {
-          // Block user - using metadata as workaround
-          const { error } = await supabase.rpc('update_user_metadata', { 
-            user_id: userId, 
-            metadata: { blocked: true }
-          });
-          
-          if (error) throw error;
-        }
-  
-        toast({
-          title: "Успех",
-          description: isCurrentlyBlocked ? "Пользователь разблокирован" : "Пользователь заблокирован"
-        });
-  
-        // Refresh user list
-        fetchUsers();
-      } catch (rpcError) {
-        console.error("RPC not available, using alternative approach:", rpcError);
+      if (error) throw error;
         
-        // Alternative: Update user metadata through user_settings table
-        const { error } = await supabase
-          .from("user_settings")
-          .update({ 
-            role: isCurrentlyBlocked ? "user" : "blocked"
-          })
-          .eq("user_id", userId);
-          
-        if (error) throw error;
+      toast({
+        title: "Success",
+        description: isCurrentlyBlocked ? "User unblocked" : "User blocked"
+      });
         
-        toast({
-          title: "Успех",
-          description: isCurrentlyBlocked ? "Пользователь разблокирован" : "Пользователь заблокирован"
-        });
-        
-        fetchUsers();
-      }
+      fetchUsers();
     } catch (error) {
       console.error("Error toggling user block status:", error);
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось изменить блокировку пользователя"
+        title: "Error",
+        description: "Failed to change user block status"
       });
     }
   };
@@ -262,8 +232,8 @@ export function UserManagement() {
       if (error) throw error;
   
       toast({
-        title: "Успех",
-        description: "Пользователь помечен как удаленный"
+        title: "Success",
+        description: "User marked as deleted"
       });
   
       // Refresh user list
@@ -272,8 +242,8 @@ export function UserManagement() {
       console.error("Error deleting user:", error);
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось удалить пользователя"
+        title: "Error",
+        description: "Failed to delete user"
       });
     } finally {
       setShowDeleteDialog(false);
@@ -312,8 +282,8 @@ export function UserManagement() {
       if (error) throw error;
 
       toast({
-        title: "Успех",
-        description: "Информация пользователя обновлена"
+        title: "Success",
+        description: "User information updated"
       });
 
       // Refresh user list
@@ -322,8 +292,8 @@ export function UserManagement() {
       console.error("Error updating user:", error);
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось обновить информацию пользователя"
+        title: "Error",
+        description: "Failed to update user information"
       });
     } finally {
       setShowEditDialog(false);
@@ -334,59 +304,59 @@ export function UserManagement() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Пользователи</h2>
+        <h2 className="text-xl font-semibold">Users</h2>
         <Button 
           onClick={() => fetchUsers()} 
           variant="outline" 
           disabled={isLoading}
         >
-          Обновить
+          Refresh
         </Button>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-4">Загрузка...</div>
+        <div className="text-center py-4">Loading...</div>
       ) : (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Имя / Email</TableHead>
-                <TableHead>Роль</TableHead>
-                <TableHead>Почасовая ставка</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead className="text-right">Действия</TableHead>
+                <TableHead>Name / Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Hourly Rate</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-4">
-                    Пользователи не найдены
+                    No users found
                   </TableCell>
                 </TableRow>
               ) : (
                 users.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
-                      <div className="font-medium">{user.name || "Без имени"}</div>
+                      <div className="font-medium">{user.name || "No name"}</div>
                       <div className="text-sm text-muted-foreground">{user.email}</div>
                     </TableCell>
                     <TableCell>
                       {user.isAdmin ? (
-                        <Badge variant="default">Администратор</Badge>
+                        <Badge variant="default">Administrator</Badge>
                       ) : (
                         <Badge variant="outline">{user.role}</Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      {user.hourlyRate} ₽/час
+                      ${user.hourlyRate}/hr
                     </TableCell>
                     <TableCell>
                       {user.isBlocked ? (
-                        <Badge variant="destructive">Заблокирован</Badge>
+                        <Badge variant="destructive">Blocked</Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-green-50">Активен</Badge>
+                        <Badge variant="outline" className="bg-green-50">Active</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right space-x-2">
@@ -395,28 +365,28 @@ export function UserManagement() {
                         size="sm"
                         onClick={() => openEditUserDialog(user)}
                       >
-                        Изменить
+                        Edit
                       </Button>
                       <Button
                         variant={user.isBlocked ? "outline" : "secondary"}
                         size="sm"
                         onClick={() => toggleBlockUser(user.id, user.isBlocked || false)}
                       >
-                        {user.isBlocked ? "Разблокировать" : "Блокировать"}
+                        {user.isBlocked ? "Unblock" : "Block"}
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => toggleAdminStatus(user.id, user.isAdmin)}
                       >
-                        {user.isAdmin ? "Отменить админа" : "Сделать админом"}
+                        {user.isAdmin ? "Remove Admin" : "Make Admin"}
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
                         onClick={() => confirmDeleteUser(user.id)}
                       >
-                        Удалить
+                        Delete
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -431,15 +401,15 @@ export function UserManagement() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              Это действие необратимо. Пользователь будет удален со всеми связанными данными.
+              This action cannot be undone. The user will be deleted along with all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteUser}>
-              Удалить
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -449,9 +419,9 @@ export function UserManagement() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Редактировать пользователя</DialogTitle>
+            <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
-              Измените настройки пользователя и нажмите Сохранить, когда закончите.
+              Modify user settings and click Save when finished.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -461,9 +431,9 @@ export function UserManagement() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Имя</FormLabel>
+                    <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Введите имя" {...field} />
+                      <Input placeholder="Enter name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -474,17 +444,17 @@ export function UserManagement() {
                 name="role"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Роль</FormLabel>
+                    <FormLabel>Role</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Выберите роль" />
+                          <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="user">Пользователь</SelectItem>
-                        <SelectItem value="manager">Менеджер</SelectItem>
-                        <SelectItem value="worker">Сотрудник</SelectItem>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="worker">Worker</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -496,7 +466,7 @@ export function UserManagement() {
                 name="hourlyRate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Почасовая ставка (₽/час)</FormLabel>
+                    <FormLabel>Hourly Rate ($/hour)</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -510,9 +480,9 @@ export function UserManagement() {
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
-                      <FormLabel>Администратор</FormLabel>
+                      <FormLabel>Administrator</FormLabel>
                       <FormDescription>
-                        Предоставить права администратора
+                        Grant administrator privileges
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -526,9 +496,9 @@ export function UserManagement() {
               />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
-                  Отмена
+                  Cancel
                 </Button>
-                <Button type="submit">Сохранить</Button>
+                <Button type="submit">Save</Button>
               </DialogFooter>
             </form>
           </Form>

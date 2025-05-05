@@ -33,7 +33,7 @@ export function useSessionManagement({
     if (!userId || !locationDetails) return null;
 
     // Prepare session data without including team_id to avoid recursion issues
-    const sessionData = {
+    const sessionData: Record<string, any> = {
       user_id: userId,
       start_time: now.toISOString(),
       hourly_rate: locationDetails.hourly_rate || hourlyRate,
@@ -45,7 +45,7 @@ export function useSessionManagement({
     
     // Only add location_id if it exists to avoid null/undefined issues
     if (locationDetails.id) {
-      sessionData['location_id'] = locationDetails.id;
+      sessionData.location_id = locationDetails.id;
     }
     
     console.log("Creating session with data:", sessionData);

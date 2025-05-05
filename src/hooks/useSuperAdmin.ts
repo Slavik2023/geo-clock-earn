@@ -47,8 +47,8 @@ export function useSuperAdmin() {
         
         if (authError || !authData) {
           toast({
-            title: "Ошибка",
-            description: `Пользователь с почтой ${email} не найден. Пользователь должен сначала зарегистрироваться.`,
+            title: "Error",
+            description: `User with email ${email} not found. The user must register first.`,
             variant: "destructive"
           });
           return false;
@@ -92,16 +92,16 @@ export function useSuperAdmin() {
       await createAuditLog(email);
       
       toast({
-        title: "Успех",
-        description: `Пользователь ${email} назначен главным администратором системы`,
+        title: "Success",
+        description: `User ${email} has been assigned as system super administrator`,
       });
       
       return true;
     } catch (error) {
       console.error("Error setting super admin status:", error);
       toast({
-        title: "Ошибка",
-        description: "Не удалось назначить суперадмина",
+        title: "Error",
+        description: "Failed to assign super admin",
         variant: "destructive"
       });
       return false;

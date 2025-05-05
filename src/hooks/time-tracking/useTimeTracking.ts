@@ -47,7 +47,7 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
         },
         (error) => {
           console.error("Geolocation error:", error);
-          toast.error("Невозможно определить местоположение. Пожалуйста, разрешите доступ к геолокации.");
+          toast.error("Unable to determine location. Please allow access to geolocation.");
         }
       );
     }
@@ -114,7 +114,7 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
           }
         }
         
-        toast.success("Таймер запущен");
+        toast.success("Timer started");
       } else {
         // Stopping the timer
         const now = new Date();
@@ -127,13 +127,13 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
             const { totalEarnings, overtimeEarnings } = result;
             
             toast.success(
-              `Таймер остановлен. Заработано: ${totalEarnings.toFixed(2)} ${overtimeEarnings > 0 ? `(включая ${overtimeEarnings.toFixed(2)} за сверхурочные)` : ""}`
+              `Timer stopped. Earned: $${totalEarnings.toFixed(2)} ${overtimeEarnings > 0 ? `(including $${overtimeEarnings.toFixed(2)} overtime)` : ""}`
             );
           } else {
-            toast.error("Ошибка при завершении сессии");
+            toast.error("Error completing session");
           }
         } else {
-          toast.success("Таймер остановлен");
+          toast.success("Timer stopped");
         }
         
         // Reset state
@@ -144,7 +144,7 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
       }
     } catch (error) {
       console.error("Error toggling timer:", error);
-      toast.error("Произошла ошибка. Пожалуйста, попробуйте снова.");
+      toast.error("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
