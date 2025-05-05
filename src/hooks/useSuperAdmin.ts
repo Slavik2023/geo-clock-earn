@@ -7,6 +7,7 @@ export function useSuperAdmin() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
+  // Explicitly define the return type to prevent deep type instantiation
   const setSuperAdminStatus = async (email: string): Promise<boolean> => {
     setIsLoading(true);
     try {
@@ -70,14 +71,14 @@ export function useSuperAdmin() {
       }
       
       // Create an audit log entry
-      // Fix the infinite type instantiation by retrieving the user first
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData?.user?.id || 'system';
+      // Get the current user ID without chaining directly
+      const userResponse = await supabase.auth.getUser();
+      const currentUserId = userResponse.data.user?.id || 'system';
       
       await supabase
         .from("audit_logs")
         .insert({
-          user_id: userId,
+          user_id: currentUserId,
           action: "set_super_admin",
           entity_type: "user_settings",
           details: { email: email, role: "super_admin" }
