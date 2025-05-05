@@ -13,13 +13,16 @@ export function useSuperAdmin() {
       const { data } = await supabase.auth.getUser();
       const currentUserId = data?.user?.id || 'system';
       
-      // Create the audit log entry
-      await supabase.from("audit_logs").insert({
+      // Define audit log structure first to avoid deep type issues
+      const auditLogData = {
         user_id: currentUserId,
         action: "set_super_admin",
         entity_type: "user_settings",
         details: { email, role: "super_admin" }
-      });
+      };
+      
+      // Create the audit log entry
+      await supabase.from("audit_logs").insert(auditLogData);
     } catch (logError) {
       console.error("Error creating audit log:", logError);
     }
