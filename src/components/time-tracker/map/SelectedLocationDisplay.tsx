@@ -9,9 +9,18 @@ interface SelectedLocationDisplayProps {
   state?: string;
   zipCode?: string;
   onConfirm: () => void;
+  coordinates?: { latitude: number; longitude: number };
 }
 
-export function SelectedLocationDisplay({ address, street, city, state, zipCode, onConfirm }: SelectedLocationDisplayProps) {
+export function SelectedLocationDisplay({ 
+  address, 
+  street, 
+  city, 
+  state, 
+  zipCode, 
+  coordinates,
+  onConfirm 
+}: SelectedLocationDisplayProps) {
   return (
     <div className="p-3 border rounded-md bg-blue-50">
       <div className="flex items-start gap-2">
@@ -48,6 +57,15 @@ export function SelectedLocationDisplay({ address, street, city, state, zipCode,
                   <>
                     <span className="font-medium">ZIP/Postal Code:</span>
                     <span>{zipCode}</span>
+                  </>
+                )}
+                
+                {coordinates && (
+                  <>
+                    <span className="font-medium">Coordinates:</span>
+                    <span>
+                      {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
+                    </span>
                   </>
                 )}
               </div>

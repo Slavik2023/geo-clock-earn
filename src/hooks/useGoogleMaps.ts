@@ -24,14 +24,22 @@ export function useGoogleMaps({ onMapLoad }: UseGoogleMapsProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [serviceLoaded, setServiceLoaded] = useState(false);
 
+  // Auto-load the map service on mount
+  useEffect(() => {
+    loadGoogleMapsApi();
+  }, []);
+
   const loadGoogleMapsApi = () => {
-    // We're now using a free service, so just set loaded to true
+    // We're using OpenStreetMap now, so just set loaded to true
     setServiceLoaded(true);
     
     // Call the onMapLoad callback if provided
     if (onMapLoad) {
       onMapLoad();
     }
+    
+    // Get current location automatically
+    handleGetCurrentLocation();
   };
 
   const handleGetCurrentLocation = () => {
@@ -50,7 +58,7 @@ export function useGoogleMaps({ onMapLoad }: UseGoogleMapsProps) {
         };
         
         try {
-          // Use a free reverse geocoding service
+          // Use OpenStreetMap reverse geocoding service
           const addressDetails = await fetchAddressFromCoordinates(pos.lat, pos.lng);
           
           setSelectedLocation({
@@ -99,7 +107,7 @@ export function useGoogleMaps({ onMapLoad }: UseGoogleMapsProps) {
   
   const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
     try {
-      // Free geocoding service - OpenStreetMap's Nominatim API
+      // OpenStreetMap's Nominatim API
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`, {
         headers: {
           'Accept': 'application/json',

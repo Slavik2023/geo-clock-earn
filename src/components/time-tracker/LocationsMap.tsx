@@ -30,12 +30,12 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
   } | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   
-  // Initialize the free map when the component mounts
+  // Automatically get location when component mounts
   useEffect(() => {
-    initFreeMap();
+    handleGetCurrentLocation();
   }, []);
   
-  // Function to initialize the free map
+  // Function to initialize the map
   const initFreeMap = () => {
     if (mapContainerRef.current) {
       // Create a basic map representation
@@ -46,8 +46,8 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
       mapPlaceholder.className = "flex items-center justify-center h-full text-center text-muted-foreground";
       mapPlaceholder.innerHTML = `
         <div>
-          <p>Free Location Service</p>
-          <p class="text-sm mt-2">Use the button below to detect your current location</p>
+          <p>OpenStreetMap Location Service</p>
+          <p class="text-sm mt-2">Detecting your location...</p>
         </div>
       `;
       
@@ -62,6 +62,7 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
     }
 
     setIsLocating(true);
+    initFreeMap();
     
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -71,7 +72,7 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
         };
         
         try {
-          // Use a free reverse geocoding service
+          // Use OpenStreetMap's Nominatim API for reverse geocoding
           const addressDetails = await fetchAddressFromCoordinates(pos.lat, pos.lng);
           
           setSelectedLocation({
@@ -143,10 +144,10 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
     }
   };
   
-  // Function to get address from coordinates using a free service
+  // Function to get address from coordinates using OpenStreetMap
   const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
     try {
-      // Free geocoding service - OpenStreetMap's Nominatim API
+      // OpenStreetMap's Nominatim API
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`, {
         headers: {
           'Accept': 'application/json',
@@ -211,7 +212,7 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
           ) : (
             <Locate className="h-4 w-4 mr-2" />
           )}
-          {isLocating ? "Getting your location..." : "Get My Current Location"}
+          {isLocating ? "Getting your location..." : "Refresh Location"}
         </Button>
       </div>
 
@@ -227,6 +228,10 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
           city={selectedLocation.city}
           state={selectedLocation.state}
           zipCode={selectedLocation.zipCode}
+          coordinates={{
+            latitude: selectedLocation.latitude,
+            longitude: selectedLocation.longitude
+          }}
           onConfirm={handleConfirmLocation}
         />
       )}
