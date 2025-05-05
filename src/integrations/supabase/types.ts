@@ -414,7 +414,7 @@ export type Database = {
           name: string | null
           overtime_rate: number | null
           overtime_threshold: number | null
-          role: string | null
+          role: Database["public"]["Enums"]["user_role_type"]
           subscription_end_date: string | null
           subscription_status: string | null
           updated_at: string | null
@@ -429,7 +429,7 @@ export type Database = {
           name?: string | null
           overtime_rate?: number | null
           overtime_threshold?: number | null
-          role?: string | null
+          role?: Database["public"]["Enums"]["user_role_type"]
           subscription_end_date?: string | null
           subscription_status?: string | null
           updated_at?: string | null
@@ -444,7 +444,7 @@ export type Database = {
           name?: string | null
           overtime_rate?: number | null
           overtime_threshold?: number | null
-          role?: string | null
+          role?: Database["public"]["Enums"]["user_role_type"]
           subscription_end_date?: string | null
           subscription_status?: string | null
           updated_at?: string | null
@@ -491,9 +491,23 @@ export type Database = {
           updated_at: string | null
         }[]
       }
+      user_has_higher_access: {
+        Args: {
+          user_role: Database["public"]["Enums"]["user_role_type"]
+          required_role: Database["public"]["Enums"]["user_role_type"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role_type:
+        | "super_admin"
+        | "admin"
+        | "manager"
+        | "worker"
+        | "user"
+        | "blocked"
+        | "deleted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -608,6 +622,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role_type: [
+        "super_admin",
+        "admin",
+        "manager",
+        "worker",
+        "user",
+        "blocked",
+        "deleted",
+      ],
+    },
   },
 } as const

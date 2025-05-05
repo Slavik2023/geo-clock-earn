@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Json } from "@/integrations/supabase/types";
 
 export function useUserSettings() {
   const { toast } = useToast();
@@ -64,7 +65,7 @@ export function useUserSettings() {
         setEnableOvertimeCalculation(settingsData.enable_overtime_calculation ?? true);
         setUserSettingsId(settingsData.id);
         setUserRole(settingsData.role || 'user');
-        setIsAdmin(settingsData.is_admin || false);
+        setIsAdmin(settingsData.is_admin || settingsData.role === 'admin' || settingsData.role === 'super_admin');
         setIsSuperAdmin(settingsData.role === 'super_admin');
       }
     } catch (error) {
@@ -143,9 +144,18 @@ export function useUserSettings() {
     }
   };
   
-  const createSuperAdminProfile = async (email: string = "slavikifam@gmail.com") => {
+  const createSuperAdminProfile = async (email: string = "") => {
     setIsLoading(true);
     try {
+      if (!email) {
+        toast({
+          title: "Error",
+          description: "Please provide an email address",
+          variant: "destructive"
+        });
+        return false;
+      }
+
       // Check if the user with this email exists in auth system
       const { data: authData, error: authError } = await supabase
         .rpc("get_user_id_by_email", { email_param: email });
@@ -202,7 +212,8 @@ export function useUserSettings() {
               overtime_rate: 37.5,
               overtime_threshold: 8,
               enable_location_verification: true,
-              enable_overtime_calculation: true
+              enable_overtime_calculation: true,
+              email: email
             });
             
           if (insertError) {
@@ -211,13 +222,19 @@ export function useUserSettings() {
         }
         
         // Create audit log
+        const auditDetails = {
+          email: email,
+          role: 'super_admin',
+          is_admin: true
+        };
+        
         await supabase
           .from('audit_logs')
           .insert({
             user_id: userId,
             action: 'create_superadmin',
             entity_type: 'user_settings',
-            details: { email: email, role: 'super_admin', is_admin: true }
+            details: auditDetails as Json
           });
         
         toast({

@@ -11,12 +11,20 @@ import { useAuth } from "@/App";
 export function SuperAdminManagement() {
   const { user } = useAuth();
   const { isLoading, setSuperAdminStatus } = useSuperAdmin();
-  const [email, setEmail] = useState("slavikifam@gmail.com");
+  const [email, setEmail] = useState("");
   const [success, setSuccess] = useState(false);
 
   const handleSetSuperAdmin = async () => {
+    if (!email) {
+      // Don't proceed if email is empty
+      return;
+    }
     const result = await setSuperAdminStatus(email);
     setSuccess(result);
+    if (result) {
+      // Clear the email field on success
+      setEmail("");
+    }
   };
 
   return (
@@ -56,7 +64,7 @@ export function SuperAdminManagement() {
           <Alert className="mt-4 bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:text-green-300">
             <AlertTitle>Готово!</AlertTitle>
             <AlertDescription>
-              Пользователь {email} успешно назначен главным администратором системы.
+              Пользователь успешно назначен главным администратором системы.
             </AlertDescription>
           </Alert>
         )}
@@ -66,7 +74,7 @@ export function SuperAdminManagement() {
           variant="default" 
           className="bg-amber-600 hover:bg-amber-700" 
           onClick={handleSetSuperAdmin}
-          disabled={isLoading}
+          disabled={isLoading || !email}
         >
           {isLoading ? "Настройка..." : "Назначить главным администратором"}
         </Button>

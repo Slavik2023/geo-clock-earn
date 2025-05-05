@@ -28,6 +28,48 @@ export function UserList({
   onToggleAdmin,
   onDelete,
 }: UserListProps) {
+  // Function to get role badge variant based on role
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'super_admin':
+        return "default";
+      case 'admin':
+        return "secondary";
+      case 'manager':
+        return "outline";
+      case 'worker':
+        return "outline";
+      case 'blocked':
+        return "destructive";
+      case 'deleted':
+        return "destructive";
+      default:
+        return "outline";
+    }
+  };
+
+  // Function to format role name for display
+  const formatRoleName = (role: string) => {
+    switch (role) {
+      case 'super_admin':
+        return "Super Admin";
+      case 'admin':
+        return "Administrator";
+      case 'manager':
+        return "Manager";
+      case 'worker':
+        return "Worker";
+      case 'user':
+        return "User";
+      case 'blocked':
+        return "Blocked";
+      case 'deleted':
+        return "Deleted";
+      default:
+        return role;
+    }
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -61,18 +103,18 @@ export function UserList({
                   <div className="text-sm text-muted-foreground">{user.email}</div>
                 </TableCell>
                 <TableCell>
-                  {user.isAdmin ? (
-                    <Badge variant="default">Administrator</Badge>
-                  ) : (
-                    <Badge variant="outline">{user.role}</Badge>
-                  )}
+                  <Badge variant={getRoleBadgeVariant(user.role)}>
+                    {formatRoleName(user.role)}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   ${user.hourlyRate}/hr
                 </TableCell>
                 <TableCell>
-                  {user.isBlocked ? (
+                  {user.role === 'blocked' ? (
                     <Badge variant="destructive">Blocked</Badge>
+                  ) : user.role === 'deleted' ? (
+                    <Badge variant="destructive">Deleted</Badge>
                   ) : (
                     <Badge variant="outline" className="bg-green-50">Active</Badge>
                   )}
@@ -82,30 +124,37 @@ export function UserList({
                     variant="outline"
                     size="sm"
                     onClick={() => onEdit(user)}
+                    disabled={user.role === 'deleted'}
                   >
                     Edit
                   </Button>
-                  <Button
-                    variant={user.isBlocked ? "outline" : "secondary"}
-                    size="sm"
-                    onClick={() => onToggleBlock(user.id, user.isBlocked || false)}
-                  >
-                    {user.isBlocked ? "Unblock" : "Block"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onToggleAdmin(user.id, user.isAdmin)}
-                  >
-                    {user.isAdmin ? "Remove Admin" : "Make Admin"}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => onDelete(user.id)}
-                  >
-                    Delete
-                  </Button>
+                  {user.role !== 'super_admin' && user.role !== 'deleted' && (
+                    <Button
+                      variant={user.role === 'blocked' ? "outline" : "secondary"}
+                      size="sm"
+                      onClick={() => onToggleBlock(user.id, user.role === 'blocked')}
+                    >
+                      {user.role === 'blocked' ? "Unblock" : "Block"}
+                    </Button>
+                  )}
+                  {user.role !== 'super_admin' && user.role !== 'deleted' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onToggleAdmin(user.id, user.isAdmin)}
+                    >
+                      {user.isAdmin ? "Remove Admin" : "Make Admin"}
+                    </Button>
+                  )}
+                  {user.role !== 'super_admin' && user.role !== 'deleted' && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => onDelete(user.id)}
+                    >
+                      Delete
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))

@@ -24,9 +24,10 @@ export function AdminPage() {
   const { toast } = useToast();
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<string>('user');
   const [isLoading, setIsLoading] = useState(true);
   
-  // Check if current user is a super admin
+  // Check if current user is a super admin or admin
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (!user) {
@@ -43,7 +44,9 @@ export function AdminPage() {
         
         if (error) throw error;
         
-        setIsAdminUser(data?.is_admin || false);
+        // Check user role based on the new enum system
+        setUserRole(data?.role || 'user');
+        setIsAdminUser(data?.is_admin || data?.role === 'admin' || data?.role === 'super_admin');
         setIsSuperAdmin(data?.role === 'super_admin');
       } catch (error) {
         console.error("Error checking admin status:", error);

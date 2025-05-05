@@ -19,11 +19,16 @@ export function BottomNav() {
       try {
         const { data } = await supabase
           .from("user_settings")
-          .select("is_admin")
+          .select("is_admin, role")
           .eq("user_id", user.id)
           .single();
         
-        setIsAdmin(data?.is_admin || false);
+        // User is admin if is_admin is true OR role is 'admin' or 'super_admin'
+        setIsAdmin(
+          data?.is_admin || 
+          data?.role === 'admin' || 
+          data?.role === 'super_admin'
+        );
       } catch (error) {
         console.error("Error checking admin status:", error);
       }

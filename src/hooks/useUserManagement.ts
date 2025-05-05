@@ -61,10 +61,10 @@ export function useUserManagement() {
         // Create a properly-typed UserInfo object
         return {
           id: settings.user_id,
-          email: settings.user_id, // Using user_id instead of email
+          email: settings.email || settings.user_id, 
           createdAt: new Date().toISOString(),
           name: settings.name || "",
-          isAdmin: settings.is_admin || false,
+          isAdmin: settings.is_admin || settings.role === 'admin' || settings.role === 'super_admin',
           role: settings.role || "user",
           hourlyRate: settings.hourly_rate || 25,
           isBlocked: settings.role === "blocked" || false
@@ -87,9 +87,15 @@ export function useUserManagement() {
 
   const toggleAdminStatus = async (userId: string, isCurrentlyAdmin: boolean) => {
     try {
+      // Determine the new role based on current admin status
+      const newRole = isCurrentlyAdmin ? 'user' : 'admin';
+      
       const { error } = await supabase
         .from("user_settings")
-        .update({ is_admin: !isCurrentlyAdmin })
+        .update({ 
+          is_admin: !isCurrentlyAdmin,
+          role: newRole
+        })
         .eq("user_id", userId);
 
       if (error) throw error;
@@ -113,7 +119,7 @@ export function useUserManagement() {
 
   const toggleBlockUser = async (userId: string, isCurrentlyBlocked: boolean) => {
     try {
-      // Instead of RPC, update the user_settings table directly
+      // Update the user_settings table directly
       const { error } = await supabase
         .from("user_settings")
         .update({ 
