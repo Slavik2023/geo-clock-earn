@@ -55,7 +55,13 @@ export function UserManagement() {
 
       // Combine the data
       const combinedUsers = authUsers.users.map(user => {
-        const settings = userSettings?.find(s => s.user_id === user.id) || {};
+        const settings = userSettings?.find(s => s.user_id === user.id) || {
+          name: "",
+          is_admin: false,
+          role: "user",
+          hourly_rate: 25
+        };
+        
         return {
           id: user.id,
           email: user.email,

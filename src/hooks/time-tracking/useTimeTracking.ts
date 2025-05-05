@@ -65,13 +65,13 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
     clearTimerStorage
   } = useTimerStorage();
 
-  const { hourlyRate, overtimeRate, overtimeThreshold } = useUserRates();
+  const { hourlyRate, overtimeRate, overtimeThreshold } = useUserRates(user?.id);
 
   const { 
     totalBreakTime,
     lunchBreakActive,
     startLunchBreak
-  } = useLunchBreak({ isRunning: isTracking });
+  } = useLunchBreak({ isTracking });
 
   const {
     createSession,
