@@ -13,18 +13,8 @@ export function useSuperAdmin() {
       const { data } = await supabase.auth.getUser();
       const currentUserId = data?.user?.id || 'system';
       
-      // Define explicit type for the audit log entry to avoid recursive type issue
-      interface AuditLogEntry {
-        user_id: string;
-        action: string;
-        entity_type: string;
-        details: {
-          email: string;
-          role: string;
-        };
-      }
-      
-      const auditLogData: AuditLogEntry = {
+      // Create the audit log entry with a simple flat structure
+      await supabase.from("audit_logs").insert({
         user_id: currentUserId,
         action: "set_super_admin",
         entity_type: "user_settings",
@@ -32,10 +22,7 @@ export function useSuperAdmin() {
           email, 
           role: "super_admin" 
         }
-      };
-      
-      // Create the audit log entry
-      await supabase.from("audit_logs").insert(auditLogData);
+      });
     } catch (logError) {
       console.error("Error creating audit log:", logError);
     }
