@@ -7,4 +7,12 @@ export interface UserInfo {
   isAdmin: boolean;
   role: string;
   hourlyRate: number;
+  isBlocked?: boolean;
+}
+
+export interface UserFormData {
+  name: string;
+  role: string;
+  hourlyRate: number;
+  isAdmin: boolean;
 }
