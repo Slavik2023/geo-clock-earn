@@ -70,22 +70,8 @@ export function useSuperAdmin() {
         }
       }
       
-      // Create audit log with flat structure
-      let currentUserId = 'system';
-      
-      // Get current user ID in a simple way
-      const { data } = await supabase.auth.getUser();
-      if (data && data.user) {
-        currentUserId = data.user.id;
-      }
-      
-      // Create audit log with minimal nesting
-      await supabase.from("audit_logs").insert({
-        user_id: currentUserId,
-        action: "set_super_admin",
-        entity_type: "user_settings",
-        details: { email, role: "super_admin" }
-      });
+      // Log the action separately from the main flow to avoid deep nesting
+      await createAuditLog(email);
       
       toast({
         title: "Успех",
@@ -103,6 +89,26 @@ export function useSuperAdmin() {
       return false;
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Separate function to create audit log to reduce nesting
+  const createAuditLog = async (email: string): Promise<void> => {
+    try {
+      // Get current user ID
+      const authResponse = await supabase.auth.getUser();
+      const currentUserId = authResponse.data?.user?.id || 'system';
+      
+      // Create audit log
+      await supabase.from("audit_logs").insert({
+        user_id: currentUserId,
+        action: "set_super_admin",
+        entity_type: "user_settings",
+        details: { email, role: "super_admin" }
+      });
+    } catch (logError) {
+      // Just log the error but don't fail the main operation
+      console.error("Error creating audit log:", logError);
     }
   };
 
