@@ -8,6 +8,7 @@ import { EarningsCard } from "@/components/time-tracker/EarningsCard";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/App";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 export function HomePage() {
   const { toast } = useToast();
@@ -16,19 +17,102 @@ export function HomePage() {
   const [weekEarnings, setWeekEarnings] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [totalHours, setTotalHours] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Для демонстрации - в реальном приложении эти данные будут загружаться из API
-    setTodayEarnings(87.50);
-    setWeekEarnings(432.75);
-    setTotalHours(24.5);
-    
-    // Проверка активного таймера
+    // Check for active timer
     const activeTimer = localStorage.getItem("activeTimer");
     if (activeTimer) {
       setIsTimerActive(true);
     }
-  }, []);
+
+    // Fetch actual user earnings
+    if (user?.id) {
+      fetchUserEarnings();
+    } else {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
+  
+  const fetchUserEarnings = async () => {
+    setIsLoading(true);
+    try {
+      // Get today's date range
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      // Get week's date range (last 7 days)
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - 6);
+      
+      // Fetch today's earnings
+      const { data: todaySessions, error: todayError } = await supabase
+        .from("sessions")
+        .select("earnings")
+        .eq("user_id", user?.id)
+        .gte("start_time", today.toISOString())
+        .lt("start_time", tomorrow.toISOString());
+      
+      if (todayError) {
+        console.error("Error fetching today's earnings:", todayError);
+      } else {
+        const todaySum = todaySessions.reduce((sum, session) => 
+          sum + (session.earnings || 0), 0);
+        setTodayEarnings(todaySum);
+      }
+      
+      // Fetch week's earnings
+      const { data: weekSessions, error: weekError } = await supabase
+        .from("sessions")
+        .select("earnings")
+        .eq("user_id", user?.id)
+        .gte("start_time", weekStart.toISOString())
+        .lt("start_time", tomorrow.toISOString());
+      
+      if (weekError) {
+        console.error("Error fetching week's earnings:", weekError);
+      } else {
+        const weekSum = weekSessions.reduce((sum, session) => 
+          sum + (session.earnings || 0), 0);
+        setWeekEarnings(weekSum);
+      }
+      
+      // Calculate total hours worked this month
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      const { data: monthSessions, error: monthError } = await supabase
+        .from("sessions")
+        .select("start_time, end_time")
+        .eq("user_id", user?.id)
+        .gte("start_time", monthStart.toISOString())
+        .lte("start_time", monthEnd.toISOString());
+      
+      if (monthError) {
+        console.error("Error fetching month's sessions:", monthError);
+      } else if (monthSessions) {
+        let totalHoursWorked = 0;
+        
+        monthSessions.forEach(session => {
+          if (session.start_time && session.end_time) {
+            const start = new Date(session.start_time);
+            const end = new Date(session.end_time);
+            const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+            totalHoursWorked += hours;
+          }
+        });
+        
+        setTotalHours(totalHoursWorked);
+      }
+      
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const handleStartTimer = () => {
     toast({
@@ -75,16 +159,24 @@ export function HomePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="text-4xl font-bold text-brand-blue">${todayEarnings.toFixed(2)}</div>
-            <div className="text-sm text-muted-foreground mt-1">
-              Неделя: ${weekEarnings.toFixed(2)}
-            </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-12">
+                <div className="animate-pulse h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-4xl font-bold text-brand-blue">${todayEarnings.toFixed(2)}</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Неделя: ${weekEarnings.toFixed(2)}
+                </div>
+              </>
+            )}
           </CardContent>
           <CardFooter className="bg-gray-50 dark:bg-gray-800/50 px-6 py-3">
             <div className="flex justify-between w-full items-center">
               <span className="text-sm text-muted-foreground flex items-center">
                 <TrendingUp size={16} className="mr-1 text-green-500" />
-                +12% с прошлой недели
+                Данные за последние 7 дней
               </span>
               <Button variant="ghost" size="sm" className="text-brand-blue">
                 Детали <ChevronRight size={16} />
@@ -100,7 +192,11 @@ export function HomePage() {
               <div className="rounded-full bg-blue-100 dark:bg-blue-900/30 p-3 mb-3">
                 <Clock size={24} className="text-brand-blue" />
               </div>
-              <p className="text-lg font-semibold">{totalHours} ч</p>
+              {isLoading ? (
+                <div className="animate-pulse h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              ) : (
+                <p className="text-lg font-semibold">{totalHours.toFixed(1)} ч</p>
+              )}
               <p className="text-sm text-muted-foreground">Часов в этом месяце</p>
             </CardContent>
           </Card>
@@ -110,7 +206,11 @@ export function HomePage() {
               <div className="rounded-full bg-orange-100 dark:bg-orange-900/30 p-3 mb-3">
                 <Calendar size={24} className="text-brand-orange" />
               </div>
-              <p className="text-lg font-semibold">12</p>
+              {isLoading ? (
+                <div className="animate-pulse h-5 w-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              ) : (
+                <p className="text-lg font-semibold">{Math.max(0, weekSessions ? weekSessions.length : 0)}</p>
+              )}
               <p className="text-sm text-muted-foreground">Рабочих сессий</p>
             </CardContent>
           </Card>
