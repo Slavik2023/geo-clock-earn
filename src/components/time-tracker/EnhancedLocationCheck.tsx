@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { MapPin, AlertCircle, CheckCircle, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,6 +26,9 @@ export interface LocationDetails {
   overtime_rate?: number;
   latitude?: number | null;
   longitude?: number | null;
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
   zip_code?: string | null;
 }
 
@@ -162,8 +164,29 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
   };
 
   const reverseGeocode = async (latitude: number, longitude: number) => {
-    const mockAddress = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-    setManualAddress(mockAddress);
+    try {
+      // Free geocoding service - OpenStreetMap's Nominatim API
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TimeTracker App' // Required by OSM Nominatim usage policy
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      
+      // Extract relevant address details
+      const address = data.display_name || '';
+      setManualAddress(address);
+    } catch (error) {
+      console.error("Error fetching address:", error);
+      const mockAddress = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+      setManualAddress(mockAddress);
+    }
   };
 
   const handleManualEntry = () => {
@@ -214,12 +237,24 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
     });
   };
 
-  const handleMapLocationSelected = (location: { address: string; latitude: number; longitude: number }) => {
+  const handleMapLocationSelected = (location: { 
+    address: string; 
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    latitude: number; 
+    longitude: number 
+  }) => {
     setSelectedLocation({
       address: location.address,
       hourly_rate: 25,
       latitude: location.latitude,
-      longitude: location.longitude
+      longitude: location.longitude,
+      street: location.street || null,
+      city: location.city || null,
+      state: location.state || null,
+      zip_code: location.zipCode || null
     });
     
     setStatus("verified");
@@ -229,7 +264,11 @@ export function EnhancedLocationCheck({ onLocationVerified }: EnhancedLocationCh
       address: location.address,
       hourly_rate: 25,
       latitude: location.latitude,
-      longitude: location.longitude
+      longitude: location.longitude,
+      street: location.street || null,
+      city: location.city || null,
+      state: location.state || null,
+      zip_code: location.zipCode || null
     });
     
     setIsMapOpen(false);

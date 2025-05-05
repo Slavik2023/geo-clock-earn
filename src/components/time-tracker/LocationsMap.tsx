@@ -6,13 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Locate } from "lucide-react";
 
 interface LocationsMapProps {
-  onSelectLocation: (location: { address: string; latitude: number; longitude: number }) => void;
+  onSelectLocation: (location: { 
+    address: string; 
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    latitude: number; 
+    longitude: number 
+  }) => void;
 }
 
 export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
   const [isLocating, setIsLocating] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<{ 
     address: string; 
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
     latitude: number; 
     longitude: number 
   } | null>(null);
@@ -60,10 +72,10 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
         
         try {
           // Use a free reverse geocoding service
-          const address = await getAddressFromCoordinates(pos.lat, pos.lng);
+          const addressDetails = await fetchAddressFromCoordinates(pos.lat, pos.lng);
           
           setSelectedLocation({
-            address: address,
+            ...addressDetails,
             latitude: pos.lat,
             longitude: pos.lng,
           });
@@ -132,11 +144,50 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
   };
   
   // Function to get address from coordinates using a free service
-  const getAddressFromCoordinates = async (lat: number, lng: number): Promise<string> => {
-    // For now, we'll return a formatted string with the coordinates
-    // In a real implementation, you could use a free geocoding service like OpenStreetMap Nominatim
-    // However, many free services have usage restrictions and require attribution
-    return `Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+  const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
+    try {
+      // Free geocoding service - OpenStreetMap's Nominatim API
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TimeTracker App' // Required by OSM Nominatim usage policy
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      
+      // Extract relevant address details
+      const address = data.display_name || '';
+      const street = data.address?.road || data.address?.street || '';
+      const houseNumber = data.address?.house_number || '';
+      const city = data.address?.city || data.address?.town || data.address?.village || '';
+      const state = data.address?.state || '';
+      const zipCode = data.address?.postcode || '';
+      
+      // Construct street address
+      const streetAddress = houseNumber ? `${houseNumber} ${street}` : street;
+      
+      return {
+        address,
+        street: streetAddress,
+        city,
+        state,
+        zipCode,
+        latitude: lat,
+        longitude: lng
+      };
+    } catch (error) {
+      console.error("Error fetching address:", error);
+      return {
+        address: `Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+        latitude: lat,
+        longitude: lng
+      };
+    }
   };
 
   const handleConfirmLocation = () => {
@@ -172,6 +223,10 @@ export function LocationsMap({ onSelectLocation }: LocationsMapProps) {
       {selectedLocation && (
         <SelectedLocationDisplay
           address={selectedLocation.address}
+          street={selectedLocation.street}
+          city={selectedLocation.city}
+          state={selectedLocation.state}
+          zipCode={selectedLocation.zipCode}
           onConfirm={handleConfirmLocation}
         />
       )}

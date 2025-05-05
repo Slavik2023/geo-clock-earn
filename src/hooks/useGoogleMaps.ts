@@ -9,6 +9,10 @@ interface UseGoogleMapsProps {
 
 interface SelectedLocation {
   address: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
   latitude: number;
   longitude: number;
 }
@@ -46,11 +50,11 @@ export function useGoogleMaps({ onMapLoad }: UseGoogleMapsProps) {
         };
         
         try {
-          // Use a free reverse geocoding service or simple formatting
-          const address = `Location (${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)})`;
+          // Use a free reverse geocoding service
+          const addressDetails = await fetchAddressFromCoordinates(pos.lat, pos.lng);
           
           setSelectedLocation({
-            address,
+            ...addressDetails,
             latitude: pos.lat,
             longitude: pos.lng,
           });
@@ -91,6 +95,52 @@ export function useGoogleMaps({ onMapLoad }: UseGoogleMapsProps) {
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
+  };
+  
+  const fetchAddressFromCoordinates = async (lat: number, lng: number) => {
+    try {
+      // Free geocoding service - OpenStreetMap's Nominatim API
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TimeTracker App' // Required by OSM Nominatim usage policy
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      
+      // Extract relevant address details
+      const address = data.display_name || '';
+      const street = data.address?.road || data.address?.street || '';
+      const houseNumber = data.address?.house_number || '';
+      const city = data.address?.city || data.address?.town || data.address?.village || '';
+      const state = data.address?.state || '';
+      const zipCode = data.address?.postcode || '';
+      
+      // Construct street address
+      const streetAddress = houseNumber ? `${houseNumber} ${street}` : street;
+      
+      return {
+        address,
+        street: streetAddress,
+        city,
+        state,
+        zipCode,
+        latitude: lat,
+        longitude: lng
+      };
+    } catch (error) {
+      console.error("Error fetching address:", error);
+      return {
+        address: `Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+        latitude: lat,
+        longitude: lng
+      };
+    }
   };
   
   const updateMapMarker = (lat: number, lng: number) => {
