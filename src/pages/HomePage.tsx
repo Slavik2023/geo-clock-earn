@@ -120,10 +120,10 @@ export function HomePage() {
   
   const handleStartTimer = () => {
     toast({
-      title: "Начинаем рабочий день",
-      description: "Переходим к трекеру времени...",
+      title: "Starting workday",
+      description: "Going to time tracker...",
     });
-    // Перенаправление на страницу с таймером
+    // Redirect to timer page
     window.location.href = "/tracker";
   };
 
@@ -134,7 +134,7 @@ export function HomePage() {
 
   return (
     <div className="space-y-6">
-      {/* Приветствие */}
+      {/* Greeting */}
       <motion.section 
         initial="hidden"
         animate="visible"
@@ -142,12 +142,12 @@ export function HomePage() {
         className="mb-6"
       >
         <h1 className="text-3xl font-bold mb-1 bg-gradient-to-r from-brand-blue to-blue-600 bg-clip-text text-transparent">
-          Привет, {user?.email?.split('@')[0] || 'коллега'}!
+          Hello, {user?.email?.split('@')[0] || 'colleague'}!
         </h1>
-        <p className="text-muted-foreground">Готовы к продуктивному дню?</p>
+        <p className="text-muted-foreground">Ready for a productive day?</p>
       </motion.section>
 
-      {/* Статистика заработка */}
+      {/* Earnings Statistics */}
       <motion.section 
         initial="hidden"
         animate="visible"
@@ -159,7 +159,7 @@ export function HomePage() {
           <CardHeader className="pb-2 border-b border-gray-100 dark:border-gray-800">
             <CardTitle className="flex items-center text-xl">
               <DollarSignIcon className="mr-2 text-brand-orange" size={20} /> 
-              Заработок сегодня
+              Today's Earnings
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
@@ -171,7 +171,7 @@ export function HomePage() {
               <>
                 <div className="text-4xl font-bold text-brand-blue">${todayEarnings.toFixed(2)}</div>
                 <div className="text-sm text-muted-foreground mt-1">
-                  Неделя: ${weekEarnings.toFixed(2)}
+                  Week: ${weekEarnings.toFixed(2)}
                 </div>
               </>
             )}
@@ -180,16 +180,16 @@ export function HomePage() {
             <div className="flex justify-between w-full items-center">
               <span className="text-sm text-muted-foreground flex items-center">
                 <TrendingUp size={16} className="mr-1 text-green-500" />
-                Данные за последние 7 дней
+                Data for the last 7 days
               </span>
               <Button variant="ghost" size="sm" className="text-brand-blue">
-                Детали <ChevronRight size={16} />
+                Details <ChevronRight size={16} />
               </Button>
             </div>
           </CardFooter>
         </Card>
 
-        {/* Карточки часов и сессий */}
+        {/* Hours and Sessions Cards */}
         <div className="grid grid-cols-2 gap-4">
           <Card className="border-0 shadow-md bg-gradient-to-br from-white to-slate-50 dark:from-gray-800 dark:to-gray-900">
             <CardContent className="p-6 flex flex-col items-center text-center">
@@ -199,9 +199,9 @@ export function HomePage() {
               {isLoading ? (
                 <div className="animate-pulse h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
               ) : (
-                <p className="text-lg font-semibold">{totalHours.toFixed(1)} ч</p>
+                <p className="text-lg font-semibold">{totalHours.toFixed(1)} hrs</p>
               )}
-              <p className="text-sm text-muted-foreground">Часов в этом месяце</p>
+              <p className="text-sm text-muted-foreground">Hours this month</p>
             </CardContent>
           </Card>
           
@@ -215,13 +215,13 @@ export function HomePage() {
               ) : (
                 <p className="text-lg font-semibold">{sessionsCount}</p>
               )}
-              <p className="text-sm text-muted-foreground">Рабочих сессий</p>
+              <p className="text-sm text-muted-foreground">Work sessions</p>
             </CardContent>
           </Card>
         </div>
       </motion.section>
 
-      {/* Кнопки действий */}
+      {/* Action Buttons */}
       <motion.section 
         initial="hidden"
         animate="visible"
@@ -229,7 +229,7 @@ export function HomePage() {
         transition={{ delay: 0.2 }}
         className="mt-6"
       >
-        <h2 className="text-lg font-semibold mb-3">Быстрые действия</h2>
+        <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Button
             onClick={handleStartTimer}
@@ -240,7 +240,7 @@ export function HomePage() {
             <div className="flex flex-col items-center justify-center">
               <PlayIcon size={28} className="mb-1" />
               <span className="font-medium">
-                {isTimerActive ? "Таймер активен" : "Начать работу"}
+                {isTimerActive ? "Timer Active" : "Start Working"}
               </span>
             </div>
           </Button>
@@ -249,14 +249,14 @@ export function HomePage() {
             <Button variant="outline" size="lg" className="w-full h-full border-2 hover:border-brand-blue hover:bg-brand-blue/5 transition-all">
               <div className="flex flex-col items-center justify-center">
                 <HistoryIcon size={28} className="mb-1 text-brand-blue" />
-                <span className="font-medium">История работы</span>
+                <span className="font-medium">Work History</span>
               </div>
             </Button>
           </Link>
         </div>
       </motion.section>
 
-      {/* Быстрый доступ */}
+      {/* Quick Access */}
       <motion.section
         initial="hidden"
         animate="visible" 
@@ -264,13 +264,13 @@ export function HomePage() {
         transition={{ delay: 0.3 }}
         className="mt-6"
       >
-        <h2 className="text-lg font-semibold mb-3">Быстрый доступ</h2>
+        <h2 className="text-lg font-semibold mb-3">Quick Access</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <Link to="/profile" className="h-full">
             <Card className="h-full border-2 border-transparent hover:border-brand-blue/30 hover:shadow-md transition-all bg-white dark:bg-gray-800">
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <SettingsIcon size={24} className="mb-2 text-gray-600 dark:text-gray-300" />
-                <span className="text-sm font-medium">Настройки</span>
+                <span className="text-sm font-medium">Settings</span>
               </CardContent>
             </Card>
           </Link>
@@ -279,7 +279,7 @@ export function HomePage() {
             <Card className="h-full border-2 border-transparent hover:border-brand-orange/30 hover:shadow-md transition-all bg-white dark:bg-gray-800">
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <DollarSignIcon size={24} className="mb-2 text-brand-orange" />
-                <span className="text-sm font-medium">Тарифы</span>
+                <span className="text-sm font-medium">Pricing</span>
               </CardContent>
             </Card>
           </Link>
@@ -288,7 +288,7 @@ export function HomePage() {
             <Card className="h-full border-2 border-transparent hover:border-green-500/30 hover:shadow-md transition-all bg-white dark:bg-gray-800">
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <TrendingUp size={24} className="mb-2 text-green-500" />
-                <span className="text-sm font-medium">Аналитика</span>
+                <span className="text-sm font-medium">Analytics</span>
               </CardContent>
             </Card>
           </Link>

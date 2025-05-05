@@ -1,3 +1,4 @@
+
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { MapPin, AlertCircle } from "lucide-react";
 import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";

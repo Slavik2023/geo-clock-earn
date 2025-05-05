@@ -31,7 +31,7 @@ export function TrackerPage() {
   useEffect(() => {
     if (locationDetails && !isLocationVerified) {
       setIsLocationVerified(true);
-      toast.success("Местоположение определено");
+      toast.success("Location detected");
     }
   }, [locationDetails, isLocationVerified]);
 

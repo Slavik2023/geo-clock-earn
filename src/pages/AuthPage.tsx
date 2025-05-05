@@ -15,12 +15,12 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 const formSchema = z.object({
-  email: z.string().email("Пожалуйста, введите действительный адрес электронной почты"),
-  password: z.string().min(6, "Пароль должен быть не менее 6 символов")
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters")
 });
 
 const resetPasswordSchema = z.object({
-  email: z.string().email("Пожалуйста, введите действительный адрес электронной почты")
+  email: z.string().email("Please enter a valid email address")
 });
 
 export function AuthPage() {
@@ -77,8 +77,8 @@ export function AuthPage() {
 
         // The redirect will happen automatically via the AuthContext
         toast({
-          title: "Добро пожаловать!",
-          description: "Вы успешно вошли в систему.",
+          title: "Welcome!",
+          description: "You have successfully logged in.",
         });
       } else {
         console.log("Attempting to signup with:", email);
@@ -97,8 +97,8 @@ export function AuthPage() {
         }
 
         toast({
-          title: "Аккаунт создан",
-          description: "Вы можете войти с вашими новыми данными.",
+          title: "Account Created",
+          description: "You can login with your new credentials.",
         });
         
         // Switch to login mode after successful signup
@@ -107,7 +107,7 @@ export function AuthPage() {
       }
     } catch (error) {
       console.error("Unexpected authentication error:", error);
-      setAuthError(error instanceof Error ? error.message : "Ошибка аутентификации");
+      setAuthError(error instanceof Error ? error.message : "Authentication error");
     } finally {
       setLoading(false);
     }
@@ -130,8 +130,8 @@ export function AuthPage() {
       }
 
       toast({
-        title: "Ссылка для восстановления пароля отправлена",
-        description: "Проверьте вашу электронную почту для сброса пароля.",
+        title: "Password reset link sent",
+        description: "Check your email to reset your password.",
       });
       
       // Switch back to login mode
@@ -139,7 +139,7 @@ export function AuthPage() {
       resetPasswordForm.reset();
     } catch (error) {
       console.error("Unexpected password reset error:", error);
-      setAuthError(error instanceof Error ? error.message : "Ошибка сброса пароля");
+      setAuthError(error instanceof Error ? error.message : "Password reset error");
     } finally {
       setLoading(false);
     }
@@ -161,18 +161,18 @@ export function AuthPage() {
 
   // If still checking authentication state, show loading
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center">Проверка статуса аутентификации...</div>;
+    return <div className="flex h-screen items-center justify-center">Checking authentication status...</div>;
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8 relative">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Добро пожаловать в WorkTime</h1>
+          <h1 className="text-2xl font-bold">Welcome to WorkTime</h1>
           <p className="text-muted-foreground mt-2">
             {isForgotPassword 
-              ? "Восстановление пароля" 
-              : (isLogin ? "Вход в аккаунт" : "Создание нового аккаунта")}
+              ? "Password Recovery" 
+              : (isLogin ? "Login to your account" : "Create a new account")}
           </p>
         </div>
 
@@ -182,7 +182,7 @@ export function AuthPage() {
               <div className="flex items-start gap-3">
                 <AlertCircle size={20} className="mt-0.5" />
                 <div className="flex flex-col">
-                  <div className="font-medium">Ошибка аутентификации</div>
+                  <div className="font-medium">Authentication Error</div>
                   <AlertDescription>{authError}</AlertDescription>
                 </div>
               </div>
@@ -212,7 +212,7 @@ export function AuthPage() {
                         <Input
                           {...field}
                           type="email"
-                          placeholder="ваш.email@example.com"
+                          placeholder="your.email@example.com"
                           className="bg-slate-50 h-12"
                           disabled={loading}
                         />
@@ -229,7 +229,7 @@ export function AuthPage() {
                   className="w-full bg-blue-500 hover:bg-blue-600 h-12 font-medium" 
                   disabled={loading}
                 >
-                  {loading ? "Отправка..." : "Отправить ссылку сброса пароля"}
+                  {loading ? "Sending..." : "Send Password Reset Link"}
                 </Button>
                 
                 <button
@@ -237,7 +237,7 @@ export function AuthPage() {
                   onClick={toggleForgotPassword}
                   className="flex items-center text-sm text-blue-600 hover:underline font-medium"
                 >
-                  <ArrowLeft size={16} className="mr-1" /> Вернуться к входу
+                  <ArrowLeft size={16} className="mr-1" /> Return to Login
                 </button>
               </div>
             </form>
@@ -256,7 +256,7 @@ export function AuthPage() {
                         <Input
                           {...field}
                           type="email"
-                          placeholder="ваш.email@example.com"
+                          placeholder="your.email@example.com"
                           className="bg-slate-50 h-12"
                           disabled={loading}
                         />
@@ -267,7 +267,7 @@ export function AuthPage() {
                 />
 
                 <FormItem>
-                  <FormLabel>Пароль</FormLabel>
+                  <FormLabel>Password</FormLabel>
                   <div className="relative">
                     <Input
                       {...form.register("password")}
@@ -300,8 +300,8 @@ export function AuthPage() {
                   disabled={loading}
                 >
                   {loading 
-                    ? (isLogin ? "Вход..." : "Создание аккаунта...") 
-                    : (isLogin ? "Войти" : "Создать аккаунт")}
+                    ? (isLogin ? "Logging in..." : "Creating account...") 
+                    : (isLogin ? "Login" : "Create Account")}
                 </Button>
                 
                 {isLogin && (
@@ -311,7 +311,7 @@ export function AuthPage() {
                       onClick={toggleForgotPassword}
                       className="text-sm text-blue-600 hover:underline font-medium"
                     >
-                      Забыли пароль?
+                      Forgot Password?
                     </button>
                   </div>
                 )}
@@ -323,8 +323,8 @@ export function AuthPage() {
                     className="text-sm text-blue-600 hover:underline font-medium"
                   >
                     {isLogin 
-                      ? "Нет аккаунта? Зарегистрироваться" 
-                      : "Уже есть аккаунт? Войти"}
+                      ? "Don't have an account? Register" 
+                      : "Already have an account? Login"}
                   </button>
                 </div>
               </div>
@@ -334,12 +334,12 @@ export function AuthPage() {
 
         {/* Testing credentials section */}
         <div className="mt-8 pt-6 border-t border-slate-200">
-          <p className="text-sm text-center text-muted-foreground mb-2">Тестовые данные:</p>
+          <p className="text-sm text-center text-muted-foreground mb-2">Test credentials:</p>
           <div className="bg-slate-50 p-3 rounded-md text-sm">
             <p><strong>Email:</strong> test@example.com</p>
-            <p><strong>Пароль:</strong> password123</p>
+            <p><strong>Password:</strong> password123</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Только для тестовых целей
+              For testing purposes only
             </p>
           </div>
         </div>
