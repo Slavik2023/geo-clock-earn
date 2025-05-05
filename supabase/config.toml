@@ -5,3 +5,7 @@ project_id = "utgpvfczmehjcljfcqvz"
 
 [functions.get-user-by-email]
 verify_jwt = true
+
+[functions.update-user-metadata]
+verify_jwt = true
+

@@ -28,13 +28,13 @@ export function useSessionManagement({
   const { toast } = useToast();
   const [endTime, setEndTime] = useState<Date | null>(null);
 
-  // Create a new session in the database
+  // Create a new session in the database with a simplified approach
   const createSession = async (now: Date) => {
     if (!userId || !locationDetails) return null;
 
+    // Prepare session data without including team_id to avoid recursion issues
     const sessionData = {
       user_id: userId,
-      location_id: locationDetails.id,
       start_time: now.toISOString(),
       hourly_rate: locationDetails.hourly_rate || hourlyRate,
       address: locationDetails.address,
@@ -42,6 +42,11 @@ export function useSessionManagement({
       longitude: locationDetails.longitude,
       is_manual_entry: !locationDetails.id // If no location ID, it's a manual entry
     };
+    
+    // Only add location_id if it exists to avoid null/undefined issues
+    if (locationDetails.id) {
+      sessionData['location_id'] = locationDetails.id;
+    }
     
     console.log("Creating session with data:", sessionData);
     
@@ -121,7 +126,7 @@ export function useSessionManagement({
         return false;
       }
       
-      // Create overtime period if applicable
+      // Create overtime period if applicable, using a direct approach without joins
       if (overtimeHours > 0 && userId) {
         const overtimeStart = new Date(startTime.getTime() + (overtimeThreshold * 60 * 60 * 1000) + breakTimeMs);
         

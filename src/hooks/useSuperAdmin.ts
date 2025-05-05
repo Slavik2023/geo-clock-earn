@@ -7,17 +7,12 @@ export function useSuperAdmin() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Define a simple type for user data to avoid excessive type inference
-  type UserData = { user_id: string } | null;
-
-  // Create audit log as a separate function with explicit Promise return type
-  const createAuditLog = async (email: string): Promise<void> => {
+  // Create audit log as a separate function
+  const createAuditLog = async (email: string) => {
     try {
-      // Get current user ID with explicit typing
-      const { data: userData } = await supabase.auth.getUser();
-      const currentUserId: string = userData?.user?.id || 'system';
+      const { data } = await supabase.auth.getUser();
+      const currentUserId = data?.user?.id || 'system';
       
-      // Create audit log with explicit type annotations
       await supabase.from("audit_logs").insert({
         user_id: currentUserId,
         action: "set_super_admin",
@@ -33,7 +28,7 @@ export function useSuperAdmin() {
     setIsLoading(true);
     
     try {
-      // First, get the user ID by email with explicit type annotation
+      // First, get the user ID by email
       const { data: users, error: userError } = await supabase
         .from("user_settings")
         .select("user_id")
@@ -93,7 +88,7 @@ export function useSuperAdmin() {
         }
       }
       
-      // Create audit log separately to avoid complex nesting
+      // Create audit log separately
       await createAuditLog(email);
       
       toast({
