@@ -22,6 +22,12 @@ export function ProfilePage() {
     createSuperAdminProfile
   } = useUserSettings();
   
+  // Add a handler function that properly handles the button click event
+  const handleCreateSuperAdmin = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    createSuperAdminProfile();
+  };
+  
   return (
     <div className="space-y-6">
       <ProfileForm 
@@ -45,7 +51,7 @@ export function ProfilePage() {
         <Button 
           variant="outline" 
           className="w-full" 
-          onClick={createSuperAdminProfile}
+          onClick={handleCreateSuperAdmin}
         >
           Create Super Admin Profile
         </Button>
