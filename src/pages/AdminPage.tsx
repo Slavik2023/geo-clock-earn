@@ -16,12 +16,14 @@ import { Button } from "@/components/ui/button";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { TeamManagement } from "@/components/admin/TeamManagement";
 import { SettingsManagement } from "@/components/admin/SettingsManagement";
+import { SuperAdminManagement } from "@/components/admin/SuperAdminManagement";
 import { Navigate } from "react-router-dom";
 
 export function AdminPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
   // Check if current user is a super admin
@@ -35,13 +37,14 @@ export function AdminPage() {
       try {
         const { data, error } = await supabase
           .from("user_settings")
-          .select("is_admin")
+          .select("is_admin, role")
           .eq("user_id", user.id)
           .single();
         
         if (error) throw error;
         
         setIsAdminUser(data?.is_admin || false);
+        setIsSuperAdmin(data?.role === 'super_admin');
       } catch (error) {
         console.error("Error checking admin status:", error);
         toast({
@@ -75,11 +78,18 @@ export function AdminPage() {
         </p>
       </div>
       
+      {isSuperAdmin && (
+        <div className="mb-6">
+          <SuperAdminManagement />
+        </div>
+      )}
+      
       <Tabs defaultValue="users">
         <TabsList>
           <TabsTrigger value="users">Пользователи</TabsTrigger>
           <TabsTrigger value="teams">Команды</TabsTrigger>
           <TabsTrigger value="settings">Настройки</TabsTrigger>
+          {isSuperAdmin && <TabsTrigger value="system">Система</TabsTrigger>}
         </TabsList>
         <TabsContent value="users" className="space-y-4">
           <UserManagement />
@@ -90,6 +100,21 @@ export function AdminPage() {
         <TabsContent value="settings" className="space-y-4">
           <SettingsManagement />
         </TabsContent>
+        {isSuperAdmin && (
+          <TabsContent value="system" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Системные настройки</CardTitle>
+                <CardDescription>
+                  Эти настройки доступны только главному администратору
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Здесь будут расположены системные настройки приложения.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

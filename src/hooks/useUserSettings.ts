@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -7,6 +8,9 @@ export function useUserSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userSettingsId, setUserSettingsId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>('user');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   
   // User profile settings
   const [name, setName] = useState('');
@@ -59,6 +63,9 @@ export function useUserSettings() {
         setEnableLocationVerification(settingsData.enable_location_verification ?? true);
         setEnableOvertimeCalculation(settingsData.enable_overtime_calculation ?? true);
         setUserSettingsId(settingsData.id);
+        setUserRole(settingsData.role || 'user');
+        setIsAdmin(settingsData.is_admin || false);
+        setIsSuperAdmin(settingsData.role === 'super_admin');
       }
     } catch (error) {
       console.error("Error in profile page:", error);
@@ -136,62 +143,97 @@ export function useUserSettings() {
     }
   };
   
-  const createSuperAdminProfile = async () => {
+  const createSuperAdminProfile = async (email: string = "slavikifam@gmail.com") => {
+    setIsLoading(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      // Check if the user with this email exists in auth system
+      const { data: authData, error: authError } = await supabase
+        .rpc("get_user_id_by_email", { email_param: email });
+      
+      if (authError) {
+        console.error("Error checking user:", authError);
         toast({
-          title: "Authentication Required",
-          description: "Please sign in to create a superadmin profile",
+          title: "Ошибка",
+          description: `Пользователь с почтой ${email} не найден в системе. Пользователь должен сначала зарегистрироваться.`,
           variant: "destructive"
         });
         return false;
       }
       
-      const userId = userData.user.id;
-      
-      const { error: settingsError } = await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: userId,
-          name: 'Super Admin',
-          is_admin: true,
-          role: 'admin',
-          subscription_status: 'premium',
-          hourly_rate: 100,
-          overtime_rate: 37.5,
-          overtime_threshold: 8,
-          enable_location_verification: true,
-          enable_overtime_calculation: true
-        }, {
-          onConflict: 'user_id'
-        });
-      
-      if (settingsError) {
-        console.error('Error creating superadmin profile:', settingsError);
+      // If the user exists, create or update user_settings
+      if (authData) {
+        const { data: existing, error: checkError } = await supabase
+          .from('user_settings')
+          .select('id')
+          .eq('user_id', authData)
+          .maybeSingle();
+          
+        if (checkError) {
+          throw checkError;
+        }
+        
+        if (existing) {
+          // Update existing record
+          const { error: updateError } = await supabase
+            .from('user_settings')
+            .update({
+              is_admin: true,
+              role: 'super_admin',
+              name: 'Super Admin',
+              subscription_status: 'premium',
+              hourly_rate: 100
+            })
+            .eq('user_id', authData);
+            
+          if (updateError) {
+            throw updateError;
+          }
+        } else {
+          // Insert new record
+          const { error: insertError } = await supabase
+            .from('user_settings')
+            .insert({
+              user_id: authData,
+              is_admin: true,
+              role: 'super_admin',
+              name: 'Super Admin',
+              subscription_status: 'premium',
+              hourly_rate: 100,
+              overtime_rate: 37.5,
+              overtime_threshold: 8,
+              enable_location_verification: true,
+              enable_overtime_calculation: true
+            });
+            
+          if (insertError) {
+            throw insertError;
+          }
+        }
+        
+        // Create audit log
+        await supabase
+          .from('audit_logs')
+          .insert({
+            user_id: userId,
+            action: 'create_superadmin',
+            entity_type: 'user_settings',
+            details: { email: email, role: 'super_admin', is_admin: true }
+          });
+        
         toast({
-          title: "Error",
-          description: "Failed to create superadmin profile",
+          title: "Успех",
+          description: `Пользователь ${email} назначен главным администратором системы`,
+        });
+        
+        return true;
+      } else {
+        toast({
+          title: "Пользователь не найден",
+          description: "Пользователь с данным email не найден в системе",
           variant: "destructive"
         });
         return false;
       }
-      
-      await supabase
-        .from('audit_logs')
-        .insert({
-          user_id: userId,
-          action: 'create_superadmin',
-          entity_type: 'user_settings',
-          details: { role: 'admin', is_admin: true }
-        });
-      
-      toast({
-        title: "Success",
-        description: "Superadmin profile created successfully",
-      });
-      
-      return true;
     } catch (error) {
       console.error('Unexpected error:', error);
       toast({
@@ -200,6 +242,8 @@ export function useUserSettings() {
         variant: "destructive"
       });
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -218,6 +262,9 @@ export function useUserSettings() {
     enableOvertimeCalculation,
     setEnableOvertimeCalculation,
     saveSettings,
-    createSuperAdminProfile
+    createSuperAdminProfile,
+    userRole,
+    isAdmin,
+    isSuperAdmin
   };
 }

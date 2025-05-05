@@ -18,6 +18,7 @@ export function HomePage() {
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [totalHours, setTotalHours] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionsCount, setSessionsCount] = useState(0);
   
   useEffect(() => {
     // Check for active timer
@@ -77,6 +78,9 @@ export function HomePage() {
         const weekSum = weekSessions.reduce((sum, session) => 
           sum + (session.earnings || 0), 0);
         setWeekEarnings(weekSum);
+        
+        // Save the sessions count for display
+        setSessionsCount(weekSessions.length);
       }
       
       // Calculate total hours worked this month
@@ -209,7 +213,7 @@ export function HomePage() {
               {isLoading ? (
                 <div className="animate-pulse h-5 w-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
               ) : (
-                <p className="text-lg font-semibold">{Math.max(0, weekSessions ? weekSessions.length : 0)}</p>
+                <p className="text-lg font-semibold">{sessionsCount}</p>
               )}
               <p className="text-sm text-muted-foreground">Рабочих сессий</p>
             </CardContent>

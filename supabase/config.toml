@@ -1,1 +1,7 @@
+
+# This file controls the behavior of the Supabase CLI.
+
 project_id = "utgpvfczmehjcljfcqvz"
+
+[functions.get-user-by-email]
+verify_jwt = true
