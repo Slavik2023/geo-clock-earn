@@ -2,6 +2,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import { WorkSession } from "../WorkSessionCard";
 import { toast } from "sonner";
+import { useTimerErrorHandler } from "@/hooks/time-tracking/useTimerErrorHandler";
+
+// Create a singleton instance of the error handler
+const errorHandler = (() => {
+  const { handleSessionLoadError } = useTimerErrorHandler();
+  return { handleSessionLoadError };
+})();
 
 export async function fetchSessions(): Promise<WorkSession[]> {
   console.log("Fetching all sessions");
@@ -36,7 +43,7 @@ export async function fetchSessions(): Promise<WorkSession[]> {
   } catch (error) {
     console.error("Error in fetchSessions:", error);
     toast.error("Could not load sessions from server. Using local data only.");
-    return [];
+    return getOfflineSessions(); // Return offline sessions as fallback
   }
 }
 
@@ -50,7 +57,7 @@ async function fetchSessionsWithoutJoins(): Promise<WorkSession[]> {
       
     if (error) {
       console.error("Error in fallback session fetch:", error);
-      return [];
+      return getOfflineSessions(); // Return offline sessions as fallback
     }
     
     return (data || []).map(session => ({
@@ -62,7 +69,7 @@ async function fetchSessionsWithoutJoins(): Promise<WorkSession[]> {
     }));
   } catch (error) {
     console.error("Fatal error in fallback session fetch:", error);
-    return [];
+    return getOfflineSessions(); // Return offline sessions as fallback
   }
 }
 
@@ -99,8 +106,7 @@ export async function fetchSessionsByDateRange(startDate: Date, endDate: Date): 
     }));
   } catch (error) {
     console.error("Error in fetchSessionsByDateRange:", error);
-    toast.error("Could not load sessions from server. Using local data only.");
-    return [];
+    return errorHandler.handleSessionLoadError(error);
   }
 }
 
@@ -116,7 +122,7 @@ async function fetchSessionsByDateRangeWithoutJoins(startDate: Date, endDate: Da
       
     if (error) {
       console.error("Error in fallback date range session fetch:", error);
-      return [];
+      return getOfflineSessions(); // Return offline sessions as fallback
     }
     
     return (data || []).map(session => ({
@@ -128,7 +134,7 @@ async function fetchSessionsByDateRangeWithoutJoins(startDate: Date, endDate: Da
     }));
   } catch (error) {
     console.error("Fatal error in fallback date range session fetch:", error);
-    return [];
+    return errorHandler.handleSessionLoadError(error);
   }
 }
 

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { fetchSessions, fetchSessionsByDateRange } from "@/components/time-tracker/services/sessionService";
+import { fetchSessions, fetchSessionsByDateRange, getOfflineSessions } from "@/components/time-tracker/services/sessionService";
 import { WorkSessionCard, WorkSession } from "@/components/time-tracker/WorkSessionCard";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -8,16 +8,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
-import { CalendarIcon, BarChart2, ClipboardListIcon, Download } from "lucide-react";
+import { CalendarIcon, BarChart2, ClipboardListIcon, AlertTriangle } from "lucide-react";
 import { AnalyticsCard } from "@/components/time-tracker/AnalyticsCard";
 import { DateRange } from "react-day-picker";
 import { useLocation } from "react-router-dom";
 import { ExportButton } from "@/components/time-tracker/exports/ExportButton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function HistoryPage() {
   const [sessions, setSessions] = useState<WorkSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [offlineSessionsUsed, setOfflineSessionsUsed] = useState(false);
   const location = useLocation();
   
   // Check if we should show analytics tab based on URL parameter
@@ -37,23 +39,43 @@ export function HistoryPage() {
     async function loadSessions() {
       setIsLoading(true);
       setError(null);
+      setOfflineSessionsUsed(false);
+
       try {
+        let data: WorkSession[] = [];
+        
         // Check if both from and to dates are set before fetching
         if (dateRange.from && dateRange.to) {
           const from = startOfDay(dateRange.from);
           const to = endOfDay(dateRange.to);
-          const data = await fetchSessionsByDateRange(from, to);
-          setSessions(data);
+          data = await fetchSessionsByDateRange(from, to);
         } else if (dateRange.from) {
           // If only from date is set, use it for both start and end
           const from = startOfDay(dateRange.from);
           const to = endOfDay(dateRange.from);
-          const data = await fetchSessionsByDateRange(from, to);
-          setSessions(data);
+          data = await fetchSessionsByDateRange(from, to);
         }
-      } catch (err) {
-        setError("Failed to load sessions");
+        
+        if (data.length === 0) {
+          // No sessions from server, try to get offline sessions
+          const offlineSessions = getOfflineSessions();
+          if (offlineSessions.length > 0) {
+            data = offlineSessions;
+            setOfflineSessionsUsed(true);
+          }
+        }
+        
+        setSessions(data);
+      } catch (err: any) {
+        setError(err?.message || "Failed to load sessions");
         console.error("Error loading sessions:", err);
+        
+        // Try to load offline sessions as fallback
+        const offlineSessions = getOfflineSessions();
+        if (offlineSessions.length > 0) {
+          setSessions(offlineSessions);
+          setOfflineSessionsUsed(true);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -105,6 +127,15 @@ export function HistoryPage() {
           </Popover>
         </div>
       </div>
+      
+      {offlineSessionsUsed && (
+        <Alert variant="warning" className="bg-amber-50 border-amber-300">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            Using locally stored sessions. Some data may not be up to date.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <div className="flex space-x-2 overflow-x-auto pb-2">
         <Button 
@@ -161,7 +192,10 @@ export function HistoryPage() {
           {isLoading ? (
             <div className="text-center py-8">Loading sessions...</div>
           ) : error ? (
-            <div className="text-center py-8 text-red-500">{error}</div>
+            <Alert variant="destructive" className="bg-red-50">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           ) : sessions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No sessions found for the selected date range.
@@ -176,7 +210,13 @@ export function HistoryPage() {
         </TabsContent>
         
         <TabsContent value="analytics">
-          <AnalyticsCard sessions={sessions} />
+          {sessions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No data available for analytics. Track some work sessions first.
+            </div>
+          ) : (
+            <AnalyticsCard sessions={sessions} />
+          )}
         </TabsContent>
       </Tabs>
     </div>

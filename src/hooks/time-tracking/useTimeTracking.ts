@@ -7,6 +7,7 @@ import { useUserRates } from "./useUserRates";
 import { useTimeTrackingState } from "./useTimeTrackingState";
 import { useLocationTracking } from "./useLocationTracking";
 import { useTimeTrackingActions } from "./useTimeTrackingActions";
+import { useTimerErrorHandler } from "./useTimerErrorHandler";
 
 interface UseTimeTrackingProps {
   isLocationVerified: boolean;
@@ -14,6 +15,7 @@ interface UseTimeTrackingProps {
 
 export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) => {
   const { user } = useAuth();
+  const { handleError } = useTimerErrorHandler();
   
   // State management
   const {
@@ -100,7 +102,8 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
     setErrorOccurred,
     retryAttempts,
     setRetryAttempts,
-    setLocalTimerActive
+    setLocalTimerActive,
+    user
   });
 
   return {
@@ -119,6 +122,7 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
     totalBreakTime,
     retryConnection,
     retryAttempts,
-    MAX_RETRY_ATTEMPTS
+    MAX_RETRY_ATTEMPTS,
+    handleError
   };
 };
