@@ -10,6 +10,7 @@ interface UseSessionCompletionProps {
   overtimeRate: number;
   overtimeThreshold: number;
   totalBreakTime: number;
+  setErrorMessage?: (message: string) => void;
 }
 
 export function useSessionCompletion({
@@ -19,7 +20,8 @@ export function useSessionCompletion({
   hourlyRate,
   overtimeRate,
   overtimeThreshold,
-  totalBreakTime
+  totalBreakTime,
+  setErrorMessage
 }: UseSessionCompletionProps) {
   const [endTime, setEndTime] = useState<Date | null>(null);
 
@@ -67,6 +69,9 @@ export function useSessionCompletion({
       console.error("Missing required data for completing session", { 
         startTime, currentSessionId, userId 
       });
+      if (setErrorMessage) {
+        setErrorMessage("Missing data to complete session. Using local calculations.");
+      }
       return null;
     }
 
@@ -89,13 +94,19 @@ export function useSessionCompletion({
         
       if (pingError) {
         console.error("Database connection test failed:", pingError);
-        // If we can't access the database, return the earnings calculation
-        // so we can still show the user their earnings
-        if (pingError.message.includes("infinite recursion") || 
-            pingError.message.includes("JWT") || 
-            pingError.message.includes("auth")) {
-          return earningsData;
+        // Handle specific error types
+        if (pingError.message.includes("infinite recursion") || pingError.message.includes("team_members")) {
+          if (setErrorMessage) {
+            setErrorMessage("Team permissions issue. Using local calculations.");
+          }
+        } else if (pingError.message.includes("JWT") || pingError.message.includes("auth")) {
+          if (setErrorMessage) {
+            setErrorMessage("Authentication error. Please try logging in again.");
+          }
         }
+        
+        // Return the earnings calculation
+        return earningsData;
       }
     
       const { error } = await supabase
@@ -108,6 +119,16 @@ export function useSessionCompletion({
       
       if (error) {
         console.error("Error updating session:", error);
+        // Handle specific error types
+        if (error.message.includes("infinite recursion") || error.message.includes("team_members")) {
+          if (setErrorMessage) {
+            setErrorMessage("Team permissions issue. Using local calculations.");
+          }
+        } else {
+          if (setErrorMessage) {
+            setErrorMessage("Error saving to server. Using local calculations.");
+          }
+        }
         // Return the earnings anyway so the user can see them
         return earningsData;
       }
@@ -130,7 +151,9 @@ export function useSessionCompletion({
       return earningsData;
     } catch (error) {
       console.error("Exception updating session:", error);
-      
+      if (setErrorMessage) {
+        setErrorMessage("Connection error. Using local earnings calculations.");
+      }
       // Return the earnings calculation even if saving to server failed
       return earningsData;
     }

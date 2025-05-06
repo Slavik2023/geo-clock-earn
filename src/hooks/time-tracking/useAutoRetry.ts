@@ -1,7 +1,6 @@
 
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
 
 interface UseAutoRetryProps {
   errorOccurred: boolean;
@@ -14,6 +13,8 @@ interface UseAutoRetryProps {
   createSession: (now: Date) => Promise<string | null>;
   saveSessionId: (id: string) => void;
   maxRetryAttempts: number;
+  errorMessage?: string;
+  setErrorMessage?: (message: string) => void;
 }
 
 export const useAutoRetry = ({
@@ -26,7 +27,8 @@ export const useAutoRetry = ({
   user,
   createSession,
   saveSessionId,
-  maxRetryAttempts
+  maxRetryAttempts,
+  setErrorMessage
 }: UseAutoRetryProps) => {
   // Automatic retry logic for failed session creation
   useEffect(() => {
@@ -45,6 +47,9 @@ export const useAutoRetry = ({
             saveSessionId(sessionId);
             setErrorOccurred(false);
             setRetryAttempts(0);
+            if (setErrorMessage) {
+              setErrorMessage("");
+            }
             toast.success("Connected to server and saved session");
           } else {
             console.error("Retry failed, no session ID returned");
@@ -60,5 +65,5 @@ export const useAutoRetry = ({
     return () => {
       if (retryTimeout) clearTimeout(retryTimeout);
     };
-  }, [errorOccurred, isTracking, retryAttempts, user?.id, startTime, createSession, saveSessionId, setErrorOccurred, setRetryAttempts, maxRetryAttempts]);
+  }, [errorOccurred, isTracking, retryAttempts, user?.id, startTime, createSession, saveSessionId, setErrorOccurred, setRetryAttempts, maxRetryAttempts, setErrorMessage]);
 };

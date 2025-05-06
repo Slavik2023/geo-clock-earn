@@ -12,6 +12,8 @@ interface UseConnectionRetryProps {
   user: { id?: string } | null;
   createSession: (now: Date) => Promise<string | null>;
   saveSessionId: (id: string) => void;
+  errorMessage?: string;
+  setErrorMessage?: (message: string) => void;
 }
 
 export const useConnectionRetry = (props: UseConnectionRetryProps) => {

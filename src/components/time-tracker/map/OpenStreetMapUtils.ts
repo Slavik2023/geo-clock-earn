@@ -19,15 +19,15 @@ export interface AddressDetails {
  */
 export const fetchAddressFromCoordinates = async (lat: number, lng: number): Promise<AddressDetails> => {
   try {
-    console.log("Запрос геокодирования для:", lat, lng);
+    console.log("Requesting geocoding for:", lat, lng);
     
-    // Используем подробные параметры для получения более точной информации
+    // Using detailed parameters to get more accurate information
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`,
       {
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'TimeTracker App' // Требуется по политике использования OSM Nominatim
+          'User-Agent': 'TimeTracker App' // Required by OSM Nominatim usage policy
         }
       }
     );
@@ -37,9 +37,9 @@ export const fetchAddressFromCoordinates = async (lat: number, lng: number): Pro
     }
     
     const data = await response.json();
-    console.log("Ответ от Nominatim:", data);
+    console.log("Response from Nominatim:", data);
     
-    // Извлекаем подробную информацию об адресе
+    // Extract detailed address information
     const address = data.display_name || '';
     const street = data.address?.road || data.address?.street || '';
     const houseNumber = data.address?.house_number || '';
@@ -47,7 +47,7 @@ export const fetchAddressFromCoordinates = async (lat: number, lng: number): Pro
     const state = data.address?.state || data.address?.county || '';
     const zipCode = data.address?.postcode || '';
     
-    // Создаем полный адрес улицы
+    // Create full street address
     const streetAddress = houseNumber ? `${houseNumber} ${street}` : street;
     
     return {
@@ -60,9 +60,9 @@ export const fetchAddressFromCoordinates = async (lat: number, lng: number): Pro
       longitude: lng
     };
   } catch (error) {
-    console.error("Ошибка при получении адреса:", error);
+    console.error("Error getting address:", error);
     return {
-      address: `Местоположение (${lat.toFixed(6)}, ${lng.toFixed(6)})`,
+      address: `Location (${lat.toFixed(6)}, ${lng.toFixed(6)})`,
       latitude: lat,
       longitude: lng
     };

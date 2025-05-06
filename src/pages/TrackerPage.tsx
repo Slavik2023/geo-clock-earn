@@ -23,6 +23,7 @@ export function TrackerPage() {
     overtimeThreshold,
     locationDetails,
     errorOccurred,
+    errorMessage,
     handleLocationVerified,
     handleToggleTimer,
     lunchBreakActive,
@@ -58,7 +59,7 @@ export function TrackerPage() {
       {errorOccurred && isTracking && (
         <div className="w-full max-w-md">
           <ConnectionErrorBanner 
-            message="Error saving session to server. Your time will be tracked locally until connection is restored."
+            message={errorMessage || "Error saving session to server. Your time will be tracked locally until connection is restored."}
             onRetry={handleRetryConnection}
             variant="warning"
           />
@@ -78,7 +79,7 @@ export function TrackerPage() {
       {errorOccurred && isTracking && retryAttempts >= MAX_RETRY_ATTEMPTS && (
         <div className="w-full max-w-md">
           <ConnectionErrorBanner 
-            message="Connection failed. Your time will continue to be tracked locally."
+            message={errorMessage || "Connection failed. Your time will continue to be tracked locally."}
             onRetry={handleRetryConnection}
             variant="error"
           />

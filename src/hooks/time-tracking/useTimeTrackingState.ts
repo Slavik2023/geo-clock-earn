@@ -1,30 +1,14 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
 
 export const useTimeTrackingState = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [locationDetails, setLocationDetails] = useState<LocationDetails | null>(null);
-  const [localTimerActive, setLocalTimerActive] = useState(false);
-  const [errorOccurred, setErrorOccurred] = useState(false);
-  const [retryAttempts, setRetryAttempts] = useState(0);
-  
-  // Load state from localStorage on mount
-  useEffect(() => {
-    const activeTimerStart = localStorage.getItem("activeTimerStart");
-    if (activeTimerStart) {
-      setLocalTimerActive(true);
-    }
-    
-    const activeLocationDetails = localStorage.getItem("activeLocationDetails");
-    if (activeLocationDetails) {
-      try {
-        setLocationDetails(JSON.parse(activeLocationDetails));
-      } catch (error) {
-        console.error("Error parsing location details:", error);
-      }
-    }
-  }, []);
+  const [localTimerActive, setLocalTimerActive] = useState<boolean>(false);
+  const [errorOccurred, setErrorOccurred] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [retryAttempts, setRetryAttempts] = useState<number>(0);
 
   return {
     isLoading,
@@ -35,6 +19,8 @@ export const useTimeTrackingState = () => {
     setLocalTimerActive,
     errorOccurred,
     setErrorOccurred,
+    errorMessage,
+    setErrorMessage,
     retryAttempts,
     setRetryAttempts
   };

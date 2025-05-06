@@ -25,6 +25,8 @@ interface UseTimeTrackingActionsProps {
   setIsLoading: (loading: boolean) => void;
   errorOccurred: boolean;
   setErrorOccurred: (error: boolean) => void;
+  errorMessage?: string;
+  setErrorMessage?: (message: string) => void;
   retryAttempts: number;
   setRetryAttempts: (attempts: number) => void;
   setLocalTimerActive: (active: boolean) => void;
@@ -43,7 +45,9 @@ export const useTimeTrackingActions = (props: UseTimeTrackingActionsProps) => {
     startTime: props.startTime,
     user,
     createSession: props.createSession,
-    saveSessionId: props.saveSessionId
+    saveSessionId: props.saveSessionId,
+    errorMessage: props.errorMessage,
+    setErrorMessage: props.setErrorMessage
   });
   
   // Use timer toggle hook

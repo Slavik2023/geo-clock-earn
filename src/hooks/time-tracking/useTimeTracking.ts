@@ -27,6 +27,8 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
     setLocalTimerActive,
     errorOccurred,
     setErrorOccurred,
+    errorMessage,
+    setErrorMessage,
     retryAttempts,
     setRetryAttempts
   } = useTimeTrackingState();
@@ -66,7 +68,8 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
     overtimeThreshold,
     totalBreakTime,
     startTime,
-    currentSessionId
+    currentSessionId,
+    setErrorMessage
   });
 
   // Location tracking
@@ -100,6 +103,8 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
     setIsLoading,
     errorOccurred,
     setErrorOccurred,
+    errorMessage,
+    setErrorMessage,
     retryAttempts,
     setRetryAttempts,
     setLocalTimerActive
@@ -114,6 +119,7 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
     overtimeThreshold,
     locationDetails,
     errorOccurred,
+    errorMessage,
     handleLocationVerified,
     handleToggleTimer,
     lunchBreakActive,

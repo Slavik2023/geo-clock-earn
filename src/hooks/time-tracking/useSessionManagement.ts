@@ -12,6 +12,7 @@ interface UseSessionManagementProps {
   totalBreakTime: number;
   startTime: Date | null;
   currentSessionId: string | null;
+  setErrorMessage?: (message: string) => void;
 }
 
 export function useSessionManagement({
@@ -22,13 +23,15 @@ export function useSessionManagement({
   overtimeThreshold,
   totalBreakTime,
   startTime,
-  currentSessionId
+  currentSessionId,
+  setErrorMessage
 }: UseSessionManagementProps) {
   // Session creation
   const { createSession } = useSessionCreation({
     userId,
     locationDetails,
-    hourlyRate
+    hourlyRate,
+    setErrorMessage
   });
 
   // Session completion
@@ -43,7 +46,8 @@ export function useSessionManagement({
     hourlyRate,
     overtimeRate,
     overtimeThreshold,
-    totalBreakTime
+    totalBreakTime,
+    setErrorMessage
   });
 
   return {

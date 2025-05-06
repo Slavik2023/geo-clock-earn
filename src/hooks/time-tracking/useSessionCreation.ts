@@ -8,12 +8,14 @@ interface UseSessionCreationProps {
   userId: string | null;
   locationDetails: LocationDetails | null;
   hourlyRate: number;
+  setErrorMessage?: (message: string) => void;
 }
 
 export function useSessionCreation({
   userId,
   locationDetails,
-  hourlyRate
+  hourlyRate,
+  setErrorMessage
 }: UseSessionCreationProps) {
   const [isRetrying, setIsRetrying] = useState(false);
 
@@ -21,6 +23,9 @@ export function useSessionCreation({
   const createSession = async (now: Date) => {
     if (!userId || !locationDetails) {
       console.error("Missing userId or locationDetails, cannot create session");
+      if (setErrorMessage) {
+        setErrorMessage("Missing required data to create session");
+      }
       return null;
     }
 
@@ -53,10 +58,21 @@ export function useSessionCreation({
       if (pingError) {
         console.error("Database connection test failed:", pingError);
         
-        // If we can't even access the database, don't attempt to create a session
+        // Check for specific policy recursion error
         if (pingError.message.includes("infinite recursion") || 
-            pingError.message.includes("JWT") || 
+            pingError.message.includes("team_members")) {
+          if (setErrorMessage) {
+            setErrorMessage("Database policy error. Your time will be tracked locally.");
+          }
+          return null;
+        }
+        
+        // If we can't even access the database, don't attempt to create a session
+        if (pingError.message.includes("JWT") || 
             pingError.message.includes("auth")) {
+          if (setErrorMessage) {
+            setErrorMessage("Authentication error. Please try logging in again.");
+          }
           return null;
         }
       }
@@ -68,6 +84,17 @@ export function useSessionCreation({
       
       if (error) {
         console.error("Error creating session:", error);
+        
+        // Handle specific error types
+        if (error.message.includes("infinite recursion") || error.message.includes("team_members")) {
+          if (setErrorMessage) {
+            setErrorMessage("There's an issue with team permissions. Your time is tracked locally.");
+          }
+        } else {
+          if (setErrorMessage) {
+            setErrorMessage("Server connection issue. Working in offline mode.");
+          }
+        }
         
         if (isRetrying) {
           // If this was already a retry attempt, don't show another toast
@@ -85,6 +112,9 @@ export function useSessionCreation({
       }
     } catch (error) {
       console.error("Exception creating session:", error);
+      if (setErrorMessage) {
+        setErrorMessage("Error connecting to server. Working in offline mode.");
+      }
       return null;
     }
   };

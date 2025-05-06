@@ -10,6 +10,8 @@ interface UseManualRetryProps {
   saveSessionId: (id: string) => void;
   setErrorOccurred: (error: boolean) => void;
   setRetryAttempts: (attempts: number) => void;
+  errorMessage?: string;
+  setErrorMessage?: (message: string) => void;
 }
 
 export const useManualRetry = ({
@@ -19,7 +21,8 @@ export const useManualRetry = ({
   createSession,
   saveSessionId,
   setErrorOccurred,
-  setRetryAttempts
+  setRetryAttempts,
+  setErrorMessage
 }: UseManualRetryProps) => {
   // Manual retry function
   const retryConnection = useCallback(async () => {
@@ -34,6 +37,9 @@ export const useManualRetry = ({
         saveSessionId(sessionId);
         setErrorOccurred(false);
         setRetryAttempts(0);
+        if (setErrorMessage) {
+          setErrorMessage("");
+        }
         toast.success("Connected to server and saved session");
       } else {
         console.error("Manual retry failed, no session ID returned");
@@ -43,7 +49,7 @@ export const useManualRetry = ({
       console.error("Error during manual retry:", error);
       toast.error("Connection failed. Your time will continue to be tracked locally.");
     }
-  }, [isTracking, user?.id, startTime, createSession, saveSessionId, setErrorOccurred, setRetryAttempts]);
+  }, [isTracking, user?.id, startTime, createSession, saveSessionId, setErrorOccurred, setRetryAttempts, setErrorMessage]);
 
   return { retryConnection };
 };
