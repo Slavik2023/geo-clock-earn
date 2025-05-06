@@ -12,6 +12,7 @@ import { ConnectionErrorBanner } from "@/components/time-tracker/ConnectionError
 
 export function TrackerPage() {
   const [isLocationVerified, setIsLocationVerified] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   
   const {
     isTracking,
@@ -27,7 +28,8 @@ export function TrackerPage() {
     lunchBreakActive,
     startLunchBreak,
     totalBreakTime,
-    retryConnection
+    retryConnection,
+    retryAttempts
   } = useTimeTracking({ isLocationVerified });
 
   // Automatically verify location if one is detected
@@ -43,13 +45,41 @@ export function TrackerPage() {
     handleLocationVerified(verified, details);
   };
 
+  const handleRetryConnection = useCallback(() => {
+    setIsRetrying(true);
+    retryConnection().finally(() => {
+      setTimeout(() => setIsRetrying(false), 1000);
+    });
+  }, [retryConnection]);
+
   return (
     <div className="flex flex-col items-center justify-center space-y-8">
       {errorOccurred && isTracking && (
         <div className="w-full max-w-md">
           <ConnectionErrorBanner 
             message="Error saving session to server. Your time will be tracked locally until connection is restored."
-            onRetry={retryConnection}
+            onRetry={handleRetryConnection}
+            variant="warning"
+          />
+        </div>
+      )}
+      
+      {isRetrying && (
+        <div className="w-full max-w-md">
+          <ConnectionErrorBanner 
+            message="Retrying connection to server..."
+            showRetry={false}
+            variant="info"
+          />
+        </div>
+      )}
+      
+      {errorOccurred && isTracking && retryAttempts >= 3 && (
+        <div className="w-full max-w-md">
+          <ConnectionErrorBanner 
+            message="Connection failed. Your time will continue to be tracked locally."
+            onRetry={handleRetryConnection}
+            variant="error"
           />
         </div>
       )}
@@ -93,7 +123,7 @@ export function TrackerPage() {
           overtimeThresholdHours={overtimeThreshold}
           totalBreakTime={totalBreakTime}
           hasError={errorOccurred}
-          onRetryConnection={retryConnection}
+          onRetryConnection={handleRetryConnection}
         />
       </div>
     </div>

@@ -75,7 +75,8 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
   // Actions
   const {
     handleToggleTimer,
-    retryConnection
+    retryConnection,
+    MAX_RETRY_ATTEMPTS
   } = useTimeTrackingActions({
     isTracking,
     startTime,
@@ -116,6 +117,8 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
     lunchBreakActive,
     startLunchBreak,
     totalBreakTime,
-    retryConnection
+    retryConnection,
+    retryAttempts,
+    MAX_RETRY_ATTEMPTS
   };
 };
