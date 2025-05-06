@@ -8,6 +8,7 @@ import { TrackerPage } from "@/pages/TrackerPage";
 import { HistoryPage } from "@/pages/history";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { AuthPage } from "@/pages/auth";
+import { DashboardPage } from "@/pages/dashboard";
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { syncOfflineSessionsToServer } from "@/components/time-tracker/services/sessionService";
@@ -18,14 +19,14 @@ interface AuthContextProps {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  isLoading: boolean; // Added to fix the error
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextProps>({ 
   user: null, 
   session: null, 
   loading: true,
-  isLoading: true // Added to fix the error
+  isLoading: true
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -71,14 +72,15 @@ function App() {
       user, 
       session, 
       loading,
-      isLoading: loading // Added to fix the error
+      isLoading: loading
     }}>
       <Router>
         <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<AppLayout />}>
-              <Route index element={<TrackerPage />} />
+              <Route index element={<DashboardPage />} />
+              <Route path="/tracker" element={<TrackerPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>

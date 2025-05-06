@@ -1,76 +1,89 @@
 
-import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { sendPasswordResetEmail } from "@/pages/auth/services/authService";
 
-const resetPasswordSchema = z.object({
-  email: z.string().email("Please enter a valid email address")
+const formSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
 });
 
-export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
-
-interface ResetPasswordFormProps {
-  onSubmit: (values: ResetPasswordFormValues) => void;
-  onBack: () => void;
-  loading: boolean;
-  defaultEmail?: string;
+export interface ResetPasswordFormProps {
+  onSuccess: () => void;
+  onError: (error: string) => void;
+  onCancel: () => void;
 }
 
-export function ResetPasswordForm({ onSubmit, onBack, loading, defaultEmail = "" }: ResetPasswordFormProps) {
-  const resetPasswordForm = useForm<ResetPasswordFormValues>({
-    resolver: zodResolver(resetPasswordSchema),
+export function ResetPasswordForm({ onSuccess, onError, onCancel }: ResetPasswordFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      email: defaultEmail
-    }
+      email: "",
+    },
   });
 
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    
+    try {
+      await sendPasswordResetEmail(values.email);
+      onSuccess();
+    } catch (error) {
+      console.error("Password reset error:", error);
+      
+      if (error instanceof Error) {
+        onError(error.message);
+      } else {
+        onError("An unexpected error occurred during password reset");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
-    <Form {...resetPasswordForm}>
-      <form onSubmit={resetPasswordForm.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-4">
+    <>
+      <p className="text-sm text-muted-foreground mb-4">
+        Enter your email address and we'll send you a link to reset your password.
+      </p>
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
-            control={resetPasswordForm.control}
+            control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input
+                  <Input 
+                    placeholder="your.email@example.com" 
+                    type="email" 
+                    autoComplete="email"
                     {...field}
-                    type="email"
-                    placeholder="your.email@example.com"
-                    className="bg-slate-50 h-12"
-                    disabled={loading}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </div>
-
-        <div className="space-y-4">
-          <Button 
-            type="submit" 
-            className="w-full bg-blue-500 hover:bg-blue-600 h-12 font-medium" 
-            disabled={loading}
-          >
-            {loading ? "Sending..." : "Send Password Reset Link"}
-          </Button>
           
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex items-center text-sm text-blue-600 hover:underline font-medium"
-          >
-            <ArrowLeft size={16} className="mr-1" /> Return to Login
-          </button>
-        </div>
-      </form>
-    </Form>
+          <div className="flex justify-between pt-2">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Sending..." : "Send reset link"}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </>
   );
 }
