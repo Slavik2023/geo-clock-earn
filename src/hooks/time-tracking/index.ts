@@ -10,3 +10,5 @@ export * from "./useUserRates";
 export * from "./useTimeTrackingState";
 export * from "./useTimeTrackingActions";
 export * from "./useLocationTracking";
+export * from "./useConnectionRetry";
+export * from "./useTimerToggle";
