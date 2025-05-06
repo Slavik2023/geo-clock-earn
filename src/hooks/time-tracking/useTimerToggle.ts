@@ -86,13 +86,13 @@ export const useTimerToggle = ({
               console.error("Failed to create session, no ID returned");
               setErrorOccurred(true);
               // Continue with local timer despite the error
-              toast.error("Failed to save session to server, but local timer is running");
+              toast.error("Error saving session to server, local timer will continue");
             }
           } catch (error) {
             console.error("Error creating session:", error);
             setErrorOccurred(true);
             // Continue with local timer despite the error
-            toast.error("Failed to save session to server, but local timer is running");
+            toast.error("Failed to save session to server, local timer is running");
           }
         } else {
           console.log("No user ID available, using local timer only");
