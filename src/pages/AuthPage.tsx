@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,7 +68,10 @@ export function AuthPage() {
         .eq('user_id', userId)
         .maybeSingle();
       
-      if (checkError) throw checkError;
+      if (checkError) {
+        console.error("Error checking user settings:", checkError);
+        throw checkError;
+      }
       
       if (existingSettings) {
         console.log("User settings already exist, no need to create");
@@ -89,12 +93,17 @@ export function AuthPage() {
           is_admin: false
         });
       
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("Error creating user settings:", insertError);
+        throw insertError;
+      }
       
       console.log("User settings created successfully");
+      return true;
     } catch (error) {
       console.error("Error creating user settings:", error);
       toast.error("Your account was created but we couldn't set up your profile. Please contact support.");
+      return false;
     }
   };
 
@@ -113,43 +122,44 @@ export function AuthPage() {
 
         if (error) {
           console.error("Login error:", error);
-          setAuthError(error.message);
+          setAuthError(error.message || "Authentication failed. Please check your credentials.");
+          setLoading(false);
           return;
         }
 
+        console.log("Login successful:", data);
         // The redirect will happen automatically via the AuthContext
-        uiToast({
-          title: "Welcome!",
-          description: "You have successfully logged in.",
-        });
+        toast.success("Successfully logged in!");
       } else {
         console.log("Attempting to signup with:", email);
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            emailRedirectTo: window.location.origin, // For email confirmation
-          }
         });
 
         if (error) {
           console.error("Signup error:", error);
-          setAuthError(error.message);
+          setAuthError(error.message || "Sign up failed. Please try again.");
+          setLoading(false);
           return;
         }
         
         if (data.user) {
+          console.log("Sign up successful, creating user settings");
+          
           // Create user settings in the database
-          await createUserSettings(data.user.id, email);
+          const settingsCreated = await createUserSettings(data.user.id, email);
           
-          uiToast({
-            title: "Account Created",
-            description: "You can login with your new credentials.",
-          });
-          
-          // Switch to login mode after successful signup
-          setIsLogin(true);
-          form.reset();
+          if (settingsCreated) {
+            toast.success("Account created successfully! You can now log in.");
+            // Switch to login mode after successful signup
+            setIsLogin(true);
+            form.reset();
+          } else {
+            toast.warning("Account created but profile setup failed. Please try logging in.");
+            setIsLogin(true);
+            form.reset();
+          }
         } else {
           setAuthError("Could not create user. Please try again.");
         }
@@ -174,12 +184,11 @@ export function AuthPage() {
 
       if (error) {
         console.error("Password reset error:", error);
-        setAuthError(error.message);
+        setAuthError(error.message || "Password reset failed. Please try again.");
         return;
       }
 
-      // Fix: Use toast from sonner which accepts a string directly
-      toast("Password reset link sent. Check your email to reset your password.");
+      toast.success("Password reset link sent. Check your email to reset your password.");
       
       // Switch back to login mode
       setIsForgotPassword(false);
