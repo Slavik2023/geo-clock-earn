@@ -5,48 +5,77 @@ import { useToast } from "@/components/ui/use-toast";
 
 export function useSuperAdminProfile() {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const createSuperAdminProfile = async () => {
-    setIsLoading(true);
-    
+    setIsUpdating(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please sign in to create a super admin profile",
-          variant: "destructive"
-        });
-        return;
-      }
+      const { data: user } = await supabase.auth.getUser();
       
-      // Update user settings with super_admin role
-      const { error } = await supabase
-        .from('user_settings')
+      if (!user || !user.user) {
+        throw new Error("You must be logged in to become a super admin");
+      }
+
+      // Call the Supabase edge function to update user metadata
+      const response = await fetch(
+        `${supabase.supabaseUrl}/functions/v1/update-user-metadata`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            user_id: user.user.id,
+            metadata: {
+              is_super_admin: true,
+              super_admin_since: new Date().toISOString(),
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update user profile");
+      }
+
+      // Update the user_settings table
+      const { error: settingsError } = await supabase
+        .from("user_settings")
         .update({ 
-          role: 'super_admin', 
+          role: "super_admin",
           is_admin: true 
         })
-        .eq('user_id', userData.user.id);
-      
-      if (error) throw error;
-      
+        .eq("user_id", user.user.id);
+
+      if (settingsError) {
+        throw settingsError;
+      }
+
       toast({
-        title: "Super Admin Created",
-        description: "You now have super admin privileges"
+        title: "Success!",
+        description: "You are now a super admin",
       });
+      
+      return true;
     } catch (error) {
       console.error("Error creating super admin profile:", error);
+      
       toast({
+        variant: "destructive",
         title: "Error",
-        description: "Failed to create super admin profile",
-        variant: "destructive"
+        description: error instanceof Error ? error.message : "Failed to create super admin profile",
       });
+      
+      return false;
     } finally {
-      setIsLoading(false);
+      setIsUpdating(false);
     }
   };
-  
-  return { createSuperAdminProfile, isLoading };
+
+  return {
+    createSuperAdminProfile,
+    isUpdating,
+  };
 }
