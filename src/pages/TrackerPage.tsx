@@ -29,7 +29,8 @@ export function TrackerPage() {
     startLunchBreak,
     totalBreakTime,
     retryConnection,
-    retryAttempts
+    retryAttempts,
+    MAX_RETRY_ATTEMPTS
   } = useTimeTracking({ isLocationVerified });
 
   // Automatically verify location if one is detected
@@ -74,7 +75,7 @@ export function TrackerPage() {
         </div>
       )}
       
-      {errorOccurred && isTracking && retryAttempts >= 3 && (
+      {errorOccurred && isTracking && retryAttempts >= MAX_RETRY_ATTEMPTS && (
         <div className="w-full max-w-md">
           <ConnectionErrorBanner 
             message="Connection failed. Your time will continue to be tracked locally."
