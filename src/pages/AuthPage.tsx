@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -179,10 +178,8 @@ export function AuthPage() {
         return;
       }
 
-      toast({
-        title: "Password reset link sent",
-        description: "Check your email to reset your password.",
-      });
+      // Fix: Use toast from sonner which accepts a string directly
+      toast("Password reset link sent. Check your email to reset your password.");
       
       // Switch back to login mode
       setIsForgotPassword(false);
