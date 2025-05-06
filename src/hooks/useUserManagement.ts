@@ -91,10 +91,7 @@ export function useUserManagement() {
       
       if (error) throw error;
       
-      toast({
-        title: "Success",
-        description: "User information updated"
-      });
+      toast.success("User information updated");
       
       await fetchUsers();
       setShowEditDialog(false);
@@ -102,10 +99,7 @@ export function useUserManagement() {
       return true;
     } catch (error) {
       console.error('Error updating user:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update user"
-      });
+      toast.error("Failed to update user");
       return false;
     } finally {
       setIsLoading(false);
@@ -123,19 +117,13 @@ export function useUserManagement() {
       
       if (error) throw error;
       
-      toast({
-        title: "Success",
-        description: isAdmin ? "Admin status revoked" : "Admin status granted"
-      });
+      toast.success(isAdmin ? "Admin status revoked" : "Admin status granted");
       
       await fetchUsers();
       return true;
     } catch (error) {
       console.error('Error toggling admin status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update admin status"
-      });
+      toast.error("Failed to update admin status");
       return false;
     } finally {
       setIsLoading(false);
@@ -149,25 +137,19 @@ export function useUserManagement() {
       const { error } = await supabase
         .from('user_settings')
         .update({ 
-          role: isBlocked ? 'user' : 'blocked' as UserRoleType
+          role: isBlocked ? 'user' as UserRoleType : 'blocked' as UserRoleType
         })
         .eq('user_id', userId);
       
       if (error) throw error;
       
-      toast({
-        title: "Success",
-        description: isBlocked ? "User unblocked" : "User blocked"
-      });
+      toast.success(isBlocked ? "User unblocked" : "User blocked");
       
       await fetchUsers();
       return true;
     } catch (error) {
       console.error('Error toggling block status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update user status"
-      });
+      toast.error("Failed to update user status");
       return false;
     } finally {
       setIsLoading(false);
@@ -201,10 +183,7 @@ export function useUserManagement() {
       
       if (error) throw error;
       
-      toast({
-        title: "Success",
-        description: "User marked as deleted"
-      });
+      toast.success("User marked as deleted");
       
       await fetchUsers();
       setShowDeleteDialog(false);
@@ -213,10 +192,7 @@ export function useUserManagement() {
       return true;
     } catch (error) {
       console.error('Error deleting user:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete user"
-      });
+      toast.error("Failed to delete user");
       return false;
     } finally {
       setIsLoading(false);

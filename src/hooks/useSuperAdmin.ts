@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/App";
 import { useUserSettings } from "./user-settings";
+import { UserRoleType } from "./user-settings";
 
 export function useSuperAdmin() {
   const { user } = useAuth();
   const { isSuperAdmin } = useUserSettings();
-  const [isLoading, setIsLoading] = useState(false); // Renamed from loading to isLoading
+  const [isLoading, setIsLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,7 +58,7 @@ export function useSuperAdmin() {
     setFilteredUsers(filtered);
   }, [searchTerm, users]);
 
-  const updateUserRole = async (userId: string, role: string) => {
+  const updateUserRole = async (userId: string, role: UserRoleType) => {
     if (!user || !isSuperAdmin) return false;
     
     setIsLoading(true);
@@ -87,7 +88,7 @@ export function useSuperAdmin() {
     setIsLoading(true);
     try {
       // If blocking, set role to 'blocked', otherwise back to 'user'
-      const role = isBlocked ? 'blocked' : 'user';
+      const role = isBlocked ? 'user' as UserRoleType : 'blocked' as UserRoleType;
       
       const { error } = await supabase
         .from('user_settings')
@@ -96,12 +97,12 @@ export function useSuperAdmin() {
       
       if (error) throw error;
       
-      toast.success(`User ${isBlocked ? 'blocked' : 'unblocked'} successfully`);
+      toast.success(`User ${isBlocked ? 'unblocked' : 'blocked'} successfully`);
       await fetchAllUsers();
       return true;
     } catch (error) {
       console.error('Error blocking/unblocking user:', error);
-      toast.error(`Failed to ${isBlocked ? 'block' : 'unblock'} user`);
+      toast.error(`Failed to ${isBlocked ? 'unblock' : 'block'} user`);
       return false;
     } finally {
       setIsLoading(false);
@@ -119,15 +120,13 @@ export function useSuperAdmin() {
         .rpc('get_user_id_by_email', { email_param: email });
       
       if (userIdError || !userId) {
-        toast.error('User with email ' + email + ' not found. The user must register first.', {
-          variant: 'destructive'
-        });
+        toast.error(`User with email ${email} not found. The user must register first.`);
         return false;
       }
       
       const { error } = await supabase
         .from('user_settings')
-        .update({ role: 'super_admin' })
+        .update({ role: 'super_admin' as UserRoleType })
         .eq('user_id', userId);
       
       if (error) throw error;
@@ -144,9 +143,7 @@ export function useSuperAdmin() {
       return true;
     } catch (error) {
       console.error('Error setting super admin:', error);
-      toast.error('Failed to assign super admin', {
-        variant: 'destructive'
-      });
+      toast.error('Failed to assign super admin');
       return false;
     } finally {
       setIsLoading(false);
@@ -154,7 +151,7 @@ export function useSuperAdmin() {
   };
 
   return {
-    isLoading, // Renamed from loading to isLoading
+    isLoading,
     users: filteredUsers,
     searchTerm,
     setSearchTerm,
