@@ -19,29 +19,35 @@ export interface AddressDetails {
  */
 export const fetchAddressFromCoordinates = async (lat: number, lng: number): Promise<AddressDetails> => {
   try {
-    // OpenStreetMap's Nominatim API
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'TimeTracker App' // Required by OSM Nominatim usage policy
+    console.log("Запрос геокодирования для:", lat, lng);
+    
+    // Используем подробные параметры для получения более точной информации
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TimeTracker App' // Требуется по политике использования OSM Nominatim
+        }
       }
-    });
+    );
     
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
     
     const data = await response.json();
+    console.log("Ответ от Nominatim:", data);
     
-    // Extract relevant address details
+    // Извлекаем подробную информацию об адресе
     const address = data.display_name || '';
     const street = data.address?.road || data.address?.street || '';
     const houseNumber = data.address?.house_number || '';
-    const city = data.address?.city || data.address?.town || data.address?.village || '';
-    const state = data.address?.state || '';
+    const city = data.address?.city || data.address?.town || data.address?.village || data.address?.hamlet || '';
+    const state = data.address?.state || data.address?.county || '';
     const zipCode = data.address?.postcode || '';
     
-    // Construct street address
+    // Создаем полный адрес улицы
     const streetAddress = houseNumber ? `${houseNumber} ${street}` : street;
     
     return {
@@ -54,12 +60,11 @@ export const fetchAddressFromCoordinates = async (lat: number, lng: number): Pro
       longitude: lng
     };
   } catch (error) {
-    console.error("Error fetching address:", error);
+    console.error("Ошибка при получении адреса:", error);
     return {
-      address: `Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+      address: `Местоположение (${lat.toFixed(6)}, ${lng.toFixed(6)})`,
       latitude: lat,
       longitude: lng
     };
   }
 };
-
