@@ -1,5 +1,5 @@
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 interface UseManualRetryProps {
@@ -24,10 +24,13 @@ export const useManualRetry = ({
   setRetryAttempts,
   setErrorMessage
 }: UseManualRetryProps) => {
-  // Manual retry function
+  const [isPerformingRetry, setIsPerformingRetry] = useState(false);
+  
+  // Manual retry function with improved error handling
   const retryConnection = useCallback(async () => {
     if (!isTracking || !user?.id || !startTime) return;
     
+    setIsPerformingRetry(true);
     toast.info("Retrying connection to server...");
     
     try {
@@ -43,13 +46,28 @@ export const useManualRetry = ({
         toast.success("Connected to server and saved session");
       } else {
         console.error("Manual retry failed, no session ID returned");
+        
+        // Show appropriate error message based on most recent error
         toast.error("Connection failed. Your time will continue to be tracked locally.");
       }
     } catch (error) {
       console.error("Error during manual retry:", error);
-      toast.error("Connection failed. Your time will continue to be tracked locally.");
+      
+      // Handle specific error cases
+      if (error instanceof Error) {
+        if (error.message.includes("recursion") || error.message.includes("team_members")) {
+          if (setErrorMessage) {
+            setErrorMessage("Database policy error. Your time will continue to be tracked locally.");
+          }
+          toast.error("Database policy error detected. Contact administrator if this persists.");
+        } else {
+          toast.error("Connection failed. Your time will continue to be tracked locally.");
+        }
+      }
+    } finally {
+      setIsPerformingRetry(false);
     }
   }, [isTracking, user?.id, startTime, createSession, saveSessionId, setErrorOccurred, setRetryAttempts, setErrorMessage]);
 
-  return { retryConnection };
+  return { retryConnection, isPerformingRetry };
 };

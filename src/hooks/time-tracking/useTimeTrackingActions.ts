@@ -36,7 +36,7 @@ export const useTimeTrackingActions = (props: UseTimeTrackingActionsProps) => {
   const { user } = useAuth();
   
   // Use connection retry hook
-  const { retryConnection, MAX_RETRY_ATTEMPTS } = useConnectionRetry({
+  const { retryConnection, isPerformingRetry, MAX_RETRY_ATTEMPTS } = useConnectionRetry({
     errorOccurred: props.errorOccurred,
     isTracking: props.isTracking,
     retryAttempts: props.retryAttempts,
@@ -59,6 +59,7 @@ export const useTimeTrackingActions = (props: UseTimeTrackingActionsProps) => {
   return {
     handleToggleTimer,
     retryConnection,
+    isPerformingRetry,
     retryAttempts: props.retryAttempts,
     MAX_RETRY_ATTEMPTS
   };

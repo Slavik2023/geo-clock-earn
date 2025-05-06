@@ -12,7 +12,6 @@ import { ConnectionErrorBanner } from "@/components/time-tracker/ConnectionError
 
 export function TrackerPage() {
   const [isLocationVerified, setIsLocationVerified] = useState(false);
-  const [isRetrying, setIsRetrying] = useState(false);
   
   const {
     isTracking,
@@ -30,6 +29,7 @@ export function TrackerPage() {
     startLunchBreak,
     totalBreakTime,
     retryConnection,
+    isPerformingRetry,
     retryAttempts,
     MAX_RETRY_ATTEMPTS
   } = useTimeTracking({ isLocationVerified });
@@ -48,10 +48,7 @@ export function TrackerPage() {
   };
 
   const handleRetryConnection = useCallback(() => {
-    setIsRetrying(true);
-    retryConnection().finally(() => {
-      setTimeout(() => setIsRetrying(false), 1000);
-    });
+    retryConnection();
   }, [retryConnection]);
 
   return (
@@ -66,7 +63,7 @@ export function TrackerPage() {
         </div>
       )}
       
-      {isRetrying && (
+      {isPerformingRetry && (
         <div className="w-full max-w-md">
           <ConnectionErrorBanner 
             message="Retrying connection to server..."

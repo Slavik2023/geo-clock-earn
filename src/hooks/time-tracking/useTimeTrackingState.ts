@@ -9,6 +9,23 @@ export const useTimeTrackingState = () => {
   const [errorOccurred, setErrorOccurred] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [retryAttempts, setRetryAttempts] = useState<number>(0);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<string | null>(null);
+
+  const setError = (message: string, code?: string, type?: string) => {
+    setErrorMessage(message);
+    setErrorOccurred(true);
+    if (code) setErrorCode(code);
+    if (type) setErrorType(type);
+  };
+
+  const clearError = () => {
+    setErrorOccurred(false);
+    setErrorMessage("");
+    setErrorCode(null);
+    setErrorType(null);
+    setRetryAttempts(0);
+  };
 
   return {
     isLoading,
@@ -21,6 +38,10 @@ export const useTimeTrackingState = () => {
     setErrorOccurred,
     errorMessage,
     setErrorMessage,
+    errorCode,
+    errorType,
+    setError,
+    clearError,
     retryAttempts,
     setRetryAttempts
   };

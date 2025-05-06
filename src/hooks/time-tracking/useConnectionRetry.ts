@@ -25,11 +25,12 @@ export const useConnectionRetry = (props: UseConnectionRetryProps) => {
     maxRetryAttempts: MAX_RETRY_ATTEMPTS
   });
   
-  // Use manual retry hook
-  const { retryConnection } = useManualRetry(props);
+  // Use manual retry hook with error categorization
+  const { retryConnection, isPerformingRetry } = useManualRetry(props);
 
   return {
     retryConnection,
+    isPerformingRetry,
     MAX_RETRY_ATTEMPTS
   };
 };

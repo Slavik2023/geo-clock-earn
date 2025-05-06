@@ -19,7 +19,7 @@ export function useSessionCreation({
 }: UseSessionCreationProps) {
   const [isRetrying, setIsRetrying] = useState(false);
 
-  // Create a new session in the database
+  // Create a new session in the database with better error handling
   const createSession = async (now: Date) => {
     if (!userId || !locationDetails) {
       console.error("Missing userId or locationDetails, cannot create session");
@@ -48,7 +48,7 @@ export function useSessionCreation({
     console.log("Creating session with data:", sessionData);
     
     try {
-      // First, check if the user can access the database
+      // First, check if the user can access the database (simpler query)
       const { error: pingError } = await supabase
         .from("user_settings")
         .select("id")
@@ -64,6 +64,7 @@ export function useSessionCreation({
           if (setErrorMessage) {
             setErrorMessage("Database policy error. Your time will be tracked locally.");
           }
+          console.log("Detected recursion error in policy, not attempting to create session");
           return null;
         }
         
@@ -89,6 +90,14 @@ export function useSessionCreation({
         if (error.message.includes("infinite recursion") || error.message.includes("team_members")) {
           if (setErrorMessage) {
             setErrorMessage("There's an issue with team permissions. Your time is tracked locally.");
+          }
+        } else if (error.code === "23503") { // Foreign key violation
+          if (setErrorMessage) {
+            setErrorMessage("Reference error. Check that your location exists.");
+          }
+        } else if (error.code === "23505") { // Unique violation
+          if (setErrorMessage) {
+            setErrorMessage("A session already exists for this time period.");
           }
         } else {
           if (setErrorMessage) {

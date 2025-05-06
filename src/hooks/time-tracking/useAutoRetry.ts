@@ -30,20 +30,25 @@ export const useAutoRetry = ({
   maxRetryAttempts,
   setErrorMessage
 }: UseAutoRetryProps) => {
-  // Automatic retry logic for failed session creation
+  // Automatic retry logic for failed session creation with improved backoff
   useEffect(() => {
     let retryTimeout: NodeJS.Timeout;
     
     if (errorOccurred && isTracking && user?.id && retryAttempts < maxRetryAttempts) {
-      console.log(`Retrying session creation, attempt ${retryAttempts + 1}/${maxRetryAttempts}`);
+      console.log(`Auto-retrying session creation, attempt ${retryAttempts + 1}/${maxRetryAttempts}`);
+      
+      // Exponential backoff: 15s, 30s, 45s
+      const backoffTime = 15000 * (retryAttempts + 1);
       
       retryTimeout = setTimeout(async () => {
         try {
           if (!startTime) return;
           
+          console.log(`Executing retry attempt ${retryAttempts + 1}...`);
           const sessionId = await createSession(startTime);
+          
           if (sessionId) {
-            console.log("Retry successful, session created with ID:", sessionId);
+            console.log("Auto-retry successful, session created with ID:", sessionId);
             saveSessionId(sessionId);
             setErrorOccurred(false);
             setRetryAttempts(0);
@@ -52,14 +57,30 @@ export const useAutoRetry = ({
             }
             toast.success("Connected to server and saved session");
           } else {
-            console.error("Retry failed, no session ID returned");
+            console.error("Auto-retry failed, no session ID returned");
             setRetryAttempts(retryAttempts + 1);
+            
+            // Only show toast for the final retry attempt
+            if (retryAttempts + 1 >= maxRetryAttempts) {
+              toast.error("Automatic connection attempts failed. You can try manually or continue with local tracking.");
+            }
           }
         } catch (error) {
-          console.error("Error during retry:", error);
+          console.error("Error during auto-retry:", error);
           setRetryAttempts(retryAttempts + 1);
+          
+          // Handle specific error cases in the final retry attempt
+          if (retryAttempts + 1 >= maxRetryAttempts) {
+            if (error instanceof Error) {
+              if (error.message.includes("recursion") || error.message.includes("team_members")) {
+                if (setErrorMessage) {
+                  setErrorMessage("Database policy error. Your time will continue to be tracked locally.");
+                }
+              }
+            }
+          }
         }
-      }, 15000 * (retryAttempts + 1)); // Increasing backoff: 15s, 30s, 45s
+      }, backoffTime);
     }
     
     return () => {
