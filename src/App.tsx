@@ -7,7 +7,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { TrackerPage } from "@/pages/TrackerPage";
 import { HistoryPage } from "@/pages/history";
 import { ProfilePage } from "@/pages/ProfilePage";
-import { AuthPage } from "@/pages/AuthPage";
+import { AuthPage } from "@/pages/auth";
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { syncOfflineSessionsToServer } from "@/components/time-tracker/services/sessionService";
