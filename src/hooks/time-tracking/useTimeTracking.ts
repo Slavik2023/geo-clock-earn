@@ -9,6 +9,7 @@ import { useUserRates } from "./useUserRates";
 import { fetchAddressFromCoordinates } from "@/components/time-tracker/map/OpenStreetMapUtils";
 import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
 import { toast } from "sonner";
+import { saveSessionToLocalStorage } from "@/components/time-tracker/services/sessionService";
 
 interface UseTimeTrackingProps {
   isLocationVerified: boolean;
@@ -215,6 +216,16 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
           const regularEarnings = regularHours * hourlyRate;
           const overtimeEarnings = overtimeHours * overtimeRate;
           const totalEarnings = regularEarnings + overtimeEarnings;
+          
+          // Save the session to localStorage for offline access
+          if (startTime) {
+            saveSessionToLocalStorage({
+              startTime,
+              endTime: now,
+              earnings: totalEarnings,
+              address: locationDetails?.address
+            });
+          }
           
           toast.success(`Timer stopped. Approximate earnings: $${totalEarnings.toFixed(2)}`);
         }

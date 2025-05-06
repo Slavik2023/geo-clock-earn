@@ -3,12 +3,12 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlayIcon, HistoryIcon, DollarSignIcon, SettingsIcon, ChevronRight, Clock, Calendar, TrendingUp } from "lucide-react";
-import { EarningsCard } from "@/components/time-tracker/EarningsCard";
+import { PlayIcon, HistoryIcon, DollarSignIcon, SettingsIcon, ChevronRight, Clock, Calendar, TrendingUp, AlertTriangle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/App";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { getOfflineSessions } from "@/components/time-tracker/services/sessionService";
 
 export function HomePage() {
   const { toast } = useToast();
@@ -19,12 +19,21 @@ export function HomePage() {
   const [totalHours, setTotalHours] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionsCount, setSessionsCount] = useState(0);
+  const [hasOfflineData, setHasOfflineData] = useState(false);
+  const [connectionError, setConnectionError] = useState(false);
   
   useEffect(() => {
     // Check for active timer
     const activeTimer = localStorage.getItem("activeTimer");
     if (activeTimer) {
       setIsTimerActive(true);
+    }
+
+    // Check for offline sessions
+    const offlineSessions = getOfflineSessions();
+    if (offlineSessions.length > 0) {
+      setHasOfflineData(true);
+      calculateOfflineEarnings(offlineSessions);
     }
 
     // Fetch actual user earnings
@@ -35,8 +44,65 @@ export function HomePage() {
     }
   }, [user?.id]);
   
+  const calculateOfflineEarnings = (sessions) => {
+    // Get today's date range
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // Get week's date range (last 7 days)
+    const weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() - 6);
+    
+    // Filter and calculate
+    const todaySessions = sessions.filter(session => 
+      new Date(session.startTime) >= today && 
+      new Date(session.startTime) < tomorrow
+    );
+    
+    const weekSessions = sessions.filter(session => 
+      new Date(session.startTime) >= weekStart && 
+      new Date(session.startTime) < tomorrow
+    );
+    
+    // Calculate earnings
+    const todaySum = todaySessions.reduce((sum, session) => 
+      sum + (session.earnings || 0), 0);
+    
+    const weekSum = weekSessions.reduce((sum, session) => 
+      sum + (session.earnings || 0), 0);
+    
+    // Set data if we don't already have earnings from the server
+    if (todayEarnings === 0) {
+      setTodayEarnings(todaySum);
+    }
+    
+    if (weekEarnings === 0) {
+      setWeekEarnings(weekSum);
+      setSessionsCount(weekSessions.length);
+    }
+    
+    // Calculate total hours
+    const totalHoursWorked = sessions.reduce((total, session) => {
+      if (session.startTime && session.endTime) {
+        const start = new Date(session.startTime);
+        const end = new Date(session.endTime);
+        const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+        return total + hours;
+      }
+      return total;
+    }, 0);
+    
+    if (totalHours === 0) {
+      setTotalHours(totalHoursWorked);
+    }
+  };
+  
   const fetchUserEarnings = async () => {
     setIsLoading(true);
+    let serverDataLoaded = false;
+    
     try {
       // Get today's date range
       const today = new Date();
@@ -47,6 +113,25 @@ export function HomePage() {
       // Get week's date range (last 7 days)
       const weekStart = new Date(today);
       weekStart.setDate(weekStart.getDate() - 6);
+      
+      // Test database connection first to avoid multiple error logs
+      const { error: pingError } = await supabase
+        .from("user_settings")
+        .select("id")
+        .eq("user_id", user?.id)
+        .limit(1);
+        
+      if (pingError) {
+        console.error("Database connection test failed:", pingError);
+        setConnectionError(true);
+        
+        // If connection fails, use offline data
+        const offlineSessions = getOfflineSessions();
+        if (offlineSessions.length > 0) {
+          calculateOfflineEarnings(offlineSessions);
+        }
+        return;
+      }
       
       // Fetch today's earnings
       const { data: todaySessions, error: todayError } = await supabase
@@ -62,6 +147,7 @@ export function HomePage() {
         const todaySum = todaySessions.reduce((sum, session) => 
           sum + (session.earnings || 0), 0);
         setTodayEarnings(todaySum);
+        serverDataLoaded = true;
       }
       
       // Fetch week's earnings
@@ -78,9 +164,8 @@ export function HomePage() {
         const weekSum = weekSessions.reduce((sum, session) => 
           sum + (session.earnings || 0), 0);
         setWeekEarnings(weekSum);
-        
-        // Save the sessions count for display
         setSessionsCount(weekSessions.length);
+        serverDataLoaded = true;
       }
       
       // Calculate total hours worked this month
@@ -109,12 +194,22 @@ export function HomePage() {
         });
         
         setTotalHours(totalHoursWorked);
+        serverDataLoaded = true;
       }
       
     } catch (error) {
       console.error("Error fetching user data:", error);
+      setConnectionError(true);
     } finally {
       setIsLoading(false);
+      
+      // If we couldn't load server data, try to use offline data
+      if (!serverDataLoaded) {
+        const offlineSessions = getOfflineSessions();
+        if (offlineSessions.length > 0) {
+          calculateOfflineEarnings(offlineSessions);
+        }
+      }
     }
   };
   
@@ -147,6 +242,18 @@ export function HomePage() {
         <p className="text-muted-foreground">Ready for a productive day?</p>
       </motion.section>
 
+      {connectionError && (
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeInUp}
+          className="bg-amber-50 border border-amber-200 rounded-md p-3 text-amber-700 text-sm flex items-center gap-2"
+        >
+          <AlertTriangle size={16} />
+          <span>Connection to the server failed. Some data may not be up to date.</span>
+        </motion.div>
+      )}
+
       {/* Earnings Statistics */}
       <motion.section 
         initial="hidden"
@@ -160,6 +267,12 @@ export function HomePage() {
             <CardTitle className="flex items-center text-xl">
               <DollarSignIcon className="mr-2 text-brand-orange" size={20} /> 
               Today's Earnings
+              {hasOfflineData && connectionError && (
+                <span className="ml-2 text-xs text-amber-500 flex items-center">
+                  <AlertTriangle size={12} className="mr-1" />
+                  Local data
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
