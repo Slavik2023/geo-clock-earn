@@ -1,6 +1,6 @@
 
-import { HomePage } from "./home/HomePage";
+import { DashboardPage } from "./dashboard/DashboardPage";
 
 export default function Index() {
-  return <HomePage />;
+  return <DashboardPage />;
 }
