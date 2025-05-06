@@ -1,146 +1,124 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { useAuth } from "@/App";
-
-import { LoginForm, LoginFormValues } from "./components/LoginForm";
-import { RegisterForm, RegisterFormValues } from "./components/RegisterForm";
-import { ResetPasswordForm, ResetPasswordFormValues } from "./components/ResetPasswordForm";
+import { Navigate, useNavigate } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { LoginForm } from "./components/LoginForm";
+import { RegisterForm } from "./components/RegisterForm";
+import { ResetPasswordForm } from "./components/ResetPasswordForm";
 import { AuthError } from "./components/AuthError";
 import { TestCredentials } from "./components/TestCredentials";
-import { loginWithEmail, registerWithEmail, resetPassword } from "./services/authService";
+import { useAuth } from "@/App";
+import { supabase } from "@/integrations/supabase/client";
 
 export function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { user, session, loading: authLoading } = useAuth();
+  const { user, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState<"login" | "register" | "reset">("login");
+  const [error, setError] = useState<string | null>(null);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
 
-  // Check if user is already logged in
+  // Check for recovery token in URL and handle password reset flow
   useEffect(() => {
-    if (user && !authLoading) {
-      console.log("User already authenticated, redirecting to home");
-      navigate('/');
-    }
-  }, [user, authLoading, navigate]);
-
-  const handleLogin = async (values: LoginFormValues) => {
-    setLoading(true);
-    setAuthError(null);
-
-    try {
-      await loginWithEmail(values.email, values.password);
-      toast.success("Successfully logged in!");
-      // The redirect will happen automatically via the AuthContext
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Authentication error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRegister = async (values: RegisterFormValues) => {
-    setLoading(true);
-    setAuthError(null);
-
-    try {
-      const { settingsCreated } = await registerWithEmail(values.email, values.password);
+    const handlePasswordRecovery = async () => {
+      const hash = window.location.hash;
       
-      if (settingsCreated) {
-        toast.success("Account created successfully! You can now log in.");
-      } else {
-        toast.warning("Account created but profile setup failed. Please try logging in.");
+      // Check if we have a recovery token in the URL
+      if (hash && hash.includes('type=recovery')) {
+        try {
+          // Set active tab to reset password form
+          setActiveTab("reset");
+          
+          // Get the access token
+          const accessToken = hash.split('&access_token=')[1]?.split('&')[0];
+          
+          if (accessToken) {
+            // We have a token, store it in Supabase auth
+            await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: '',
+            });
+          }
+        } catch (error) {
+          console.error('Error handling password recovery:', error);
+          setError('Invalid or expired recovery link. Please request a new password reset.');
+        }
       }
-      
-      // Switch to login mode after successful signup
-      setIsLogin(true);
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Registration error");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    
+    handlePasswordRecovery();
+  }, []);
 
-  const handlePasswordReset = async (values: ResetPasswordFormValues) => {
-    setLoading(true);
-    setAuthError(null);
-
-    try {
-      await resetPassword(values.email);
-      toast.success("Password reset link sent. Check your email to reset your password.");
-      setIsForgotPassword(false);
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Password reset error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const switchToForgotPassword = () => {
-    setIsForgotPassword(true);
-    setAuthError(null);
-  };
-
-  const switchToLogin = () => {
-    setIsLogin(true);
-    setAuthError(null);
-  };
-
-  const switchToRegister = () => {
-    setIsLogin(false);
-    setAuthError(null);
-  };
-
-  const returnToLogin = () => {
-    setIsForgotPassword(false);
-    setAuthError(null);
-  };
-
-  // If still checking authentication state, show loading
-  if (authLoading) {
-    return <div className="flex h-screen items-center justify-center">Checking authentication status...</div>;
+  // Redirect to home if already authenticated
+  if (user && !loading) {
+    return <Navigate to="/" />;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md space-y-8 relative">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Welcome to WorkTime</h1>
-          <p className="text-muted-foreground mt-2">
-            {isForgotPassword 
-              ? "Password Recovery" 
-              : (isLogin ? "Login to your account" : "Create a new account")}
-          </p>
-        </div>
-
-        <AuthError error={authError} onDismiss={() => setAuthError(null)} />
-
-        {isForgotPassword ? (
-          <ResetPasswordForm 
-            onSubmit={handlePasswordReset} 
-            onBack={returnToLogin} 
-            loading={loading} 
-          />
-        ) : isLogin ? (
-          <LoginForm 
-            onSubmit={handleLogin}
-            onForgotPassword={switchToForgotPassword}
-            onSwitchToRegister={switchToRegister}
-            loading={loading}
-          />
-        ) : (
-          <RegisterForm 
-            onSubmit={handleRegister}
-            onSwitchToLogin={switchToLogin}
-            loading={loading}
-          />
-        )}
-
-        <TestCredentials />
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Work Tracker</CardTitle>
+          <CardDescription>
+            {activeTab === "login" 
+              ? "Sign in to your account" 
+              : activeTab === "register" 
+                ? "Create a new account" 
+                : "Reset your password"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AuthError error={error} onDismiss={() => setError(null)} />
+          
+          {resetEmailSent ? (
+            <div className="bg-green-50 p-4 rounded-md mb-4 text-center">
+              <p className="text-green-800">
+                Password reset email sent! Check your inbox for further instructions.
+              </p>
+              <button
+                onClick={() => {
+                  setResetEmailSent(false);
+                  setActiveTab("login");
+                }}
+                className="mt-4 text-sm text-green-600 hover:underline"
+              >
+                Return to login
+              </button>
+            </div>
+          ) : (
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+              <TabsList className="grid grid-cols-2 w-full mb-4">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="register">Register</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="login">
+                <LoginForm 
+                  onSuccess={() => navigate("/")} 
+                  onError={setError}
+                  onResetPassword={() => setActiveTab("reset")}
+                />
+                <TestCredentials />
+              </TabsContent>
+              
+              <TabsContent value="register">
+                <RegisterForm 
+                  onSuccess={() => navigate("/")} 
+                  onError={setError}
+                />
+              </TabsContent>
+              
+              <TabsContent value="reset">
+                <ResetPasswordForm 
+                  onSuccess={() => setResetEmailSent(true)}
+                  onError={setError}
+                  onCancel={() => setActiveTab("login")}
+                />
+              </TabsContent>
+            </Tabs>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

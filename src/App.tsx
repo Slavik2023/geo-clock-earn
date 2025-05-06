@@ -18,9 +18,15 @@ interface AuthContextProps {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isLoading: boolean; // Added to fix the error
 }
 
-const AuthContext = createContext<AuthContextProps>({ user: null, session: null, loading: true });
+const AuthContext = createContext<AuthContextProps>({ 
+  user: null, 
+  session: null, 
+  loading: true,
+  isLoading: true // Added to fix the error
+});
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -61,7 +67,12 @@ function App() {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      loading,
+      isLoading: loading // Added to fix the error
+    }}>
       <Router>
         <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
           <Routes>
