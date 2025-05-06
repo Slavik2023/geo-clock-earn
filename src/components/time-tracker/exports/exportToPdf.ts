@@ -1,14 +1,8 @@
 
 import { WorkSession } from "../WorkSessionCard";
 import { format } from "date-fns";
-import { jsPDF } from "jspdf";
-import 'jspdf-autotable';
-
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export function exportToPdf(sessions: WorkSession[]) {
   // Create PDF document
@@ -46,8 +40,8 @@ export function exportToPdf(sessions: WorkSession[]) {
     ];
   });
   
-  // Add table
-  doc.autoTable({
+  // Add table using the autoTable plugin
+  autoTable(doc, {
     head: [["Date", "Start Time", "End Time", "Duration", "Location", "Earnings"]],
     body: tableData,
     startY: 40,
@@ -56,15 +50,15 @@ export function exportToPdf(sessions: WorkSession[]) {
     headStyles: { fillColor: [41, 128, 185], textColor: 255 }
   });
   
-  // Add summary section
+  // Add summary section - getting final Y position from autoTable
+  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  
   const totalEarnings = sessions.reduce((sum, session) => sum + session.earnings, 0);
   const totalHours = sessions.reduce((sum, session) => {
     if (!session.endTime) return sum;
     const durationHours = (session.endTime.getTime() - session.startTime.getTime()) / (1000 * 60 * 60);
     return sum + durationHours;
   }, 0);
-  
-  const finalY = (doc as any).lastAutoTable.finalY + 10;
   
   doc.setFontSize(10);
   doc.text(`Total Sessions: ${sessions.length}`, 14, finalY);
