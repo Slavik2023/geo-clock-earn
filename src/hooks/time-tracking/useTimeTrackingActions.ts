@@ -79,11 +79,11 @@ export const useTimeTrackingActions = ({
             toast.success("Connected to server and saved session");
           } else {
             console.error("Retry failed, no session ID returned");
-            setRetryAttempts(prev => prev + 1);
+            setRetryAttempts((prev) => prev + 1);
           }
         } catch (error) {
           console.error("Error during retry:", error);
-          setRetryAttempts(prev => prev + 1);
+          setRetryAttempts((prev) => prev + 1);
         }
       }, 15000 * (retryAttempts + 1)); // Increasing backoff: 15s, 30s, 45s
     }
