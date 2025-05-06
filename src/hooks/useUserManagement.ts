@@ -13,6 +13,12 @@ export function useUserManagement() {
   const [selectedUser, setSelectedUser] = useState<UserInfo | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // Add missing properties to match the tests
+  const [userToEdit, setUserToEdit] = useState<UserInfo | null>(null);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const fetchUsers = async () => {
     if (!user) return;
@@ -52,14 +58,19 @@ export function useUserManagement() {
     }
   }, [user]);
 
-  const handleEditUser = (user: UserInfo) => {
+  // Add missing property openEditUserDialog to match tests
+  const openEditUserDialog = (user: UserInfo) => {
+    setUserToEdit(user);
+    setShowEditDialog(true);
+    // For compatibility with existing code
     setSelectedUser(user);
     setEditDialogOpen(true);
   };
 
-  const handleDeleteUser = (user: UserInfo) => {
-    setSelectedUser(user);
-    setDeleteDialogOpen(true);
+  // Add missing property handleEditUser to match tests
+  const handleEditUser = async (formData: UserFormData) => {
+    if (!userToEdit) return false;
+    return await updateUser(userToEdit.id, formData);
   };
 
   const updateUser = async (userId: string, userData: UserFormData) => {
@@ -80,17 +91,99 @@ export function useUserManagement() {
       
       if (error) throw error;
       
-      toast.success('User updated successfully');
+      toast({
+        title: "Success",
+        description: "User information updated"
+      });
+      
       await fetchUsers();
+      setShowEditDialog(false);
+      setEditDialogOpen(false);
       return true;
     } catch (error) {
       console.error('Error updating user:', error);
-      toast.error('Failed to update user');
+      toast({
+        title: "Error",
+        description: "Failed to update user"
+      });
       return false;
     } finally {
       setIsLoading(false);
-      setEditDialogOpen(false);
     }
+  };
+
+  // Add missing property toggleAdminStatus to match tests
+  const toggleAdminStatus = async (userId: string, isAdmin: boolean) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ is_admin: !isAdmin })
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: isAdmin ? "Admin status revoked" : "Admin status granted"
+      });
+      
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      console.error('Error toggling admin status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update admin status"
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add missing property toggleBlockUser to match tests
+  const toggleBlockUser = async (userId: string, isBlocked: boolean) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ 
+          role: isBlocked ? 'user' : 'blocked' as UserRoleType
+        })
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: isBlocked ? "User unblocked" : "User blocked"
+      });
+      
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      console.error('Error toggling block status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user status"
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add missing property confirmDeleteUser to match tests
+  const confirmDeleteUser = (userId: string) => {
+    setUserToDelete(userId);
+    setShowDeleteDialog(true);
+  };
+
+  // Update handleDeleteUser to match tests
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return false;
+    return await deleteUser(userToDelete);
   };
 
   const deleteUser = async (userId: string) => {
@@ -108,16 +201,25 @@ export function useUserManagement() {
       
       if (error) throw error;
       
-      toast.success('User deleted successfully');
+      toast({
+        title: "Success",
+        description: "User marked as deleted"
+      });
+      
       await fetchUsers();
+      setShowDeleteDialog(false);
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
       return true;
     } catch (error) {
       console.error('Error deleting user:', error);
-      toast.error('Failed to delete user');
+      toast({
+        title: "Error",
+        description: "Failed to delete user"
+      });
       return false;
     } finally {
       setIsLoading(false);
-      setDeleteDialogOpen(false);
     }
   };
 
@@ -131,9 +233,22 @@ export function useUserManagement() {
     deleteDialogOpen,
     setDeleteDialogOpen,
     fetchUsers,
-    handleEditUser,
-    handleDeleteUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    // Add missing properties to match tests
+    userToEdit,
+    setUserToEdit,
+    showEditDialog,
+    setShowEditDialog,
+    showDeleteDialog,
+    setShowDeleteDialog,
+    userToDelete,
+    setUserToDelete,
+    openEditUserDialog,
+    handleEditUser,
+    toggleAdminStatus,
+    toggleBlockUser,
+    confirmDeleteUser,
+    handleDeleteUser
   };
 }

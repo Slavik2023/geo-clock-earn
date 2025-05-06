@@ -14,7 +14,8 @@ describe('EditUserDialog component', () => {
     createdAt: new Date().toISOString(),
     isAdmin: true,
     role: 'manager',
-    hourlyRate: 50
+    hourlyRate: 50,
+    isBlocked: false // Add the missing property
   };
 
   const mockProps = {
@@ -57,7 +58,8 @@ describe('EditUserDialog component', () => {
       id: 'user2',
       name: 'Jane Smith',
       hourlyRate: 75,
-      isAdmin: false
+      isAdmin: false,
+      isBlocked: false // Add the missing property
     };
     
     rerender(<EditUserDialog {...mockProps} userToEdit={newUser} />);

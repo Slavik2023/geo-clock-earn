@@ -8,7 +8,7 @@ import { useUserSettings } from "./user-settings";
 export function useSuperAdmin() {
   const { user } = useAuth();
   const { isSuperAdmin } = useUserSettings();
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Renamed from loading to isLoading
   const [users, setUsers] = useState<any[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -16,7 +16,7 @@ export function useSuperAdmin() {
   const fetchAllUsers = async () => {
     if (!user || !isSuperAdmin) return;
     
-    setLoading(true);
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('user_settings')
@@ -30,7 +30,7 @@ export function useSuperAdmin() {
       console.error('Error fetching users:', error);
       toast.error('Failed to load users');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -60,7 +60,7 @@ export function useSuperAdmin() {
   const updateUserRole = async (userId: string, role: string) => {
     if (!user || !isSuperAdmin) return false;
     
-    setLoading(true);
+    setIsLoading(true);
     try {
       const { error } = await supabase
         .from('user_settings')
@@ -77,14 +77,14 @@ export function useSuperAdmin() {
       toast.error('Failed to update user role');
       return false;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const blockUser = async (userId: string, isBlocked: boolean) => {
     if (!user || !isSuperAdmin) return false;
     
-    setLoading(true);
+    setIsLoading(true);
     try {
       // If blocking, set role to 'blocked', otherwise back to 'user'
       const role = isBlocked ? 'blocked' : 'user';
@@ -104,17 +104,63 @@ export function useSuperAdmin() {
       toast.error(`Failed to ${isBlocked ? 'block' : 'unblock'} user`);
       return false;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  // Add the setSuperAdminStatus function that's used in the tests
+  const setSuperAdminStatus = async (email: string) => {
+    if (!user || !isSuperAdmin) return false;
+    
+    setIsLoading(true);
+    try {
+      // Get user ID from email using RPC or direct query
+      const { data: userId, error: userIdError } = await supabase
+        .rpc('get_user_id_by_email', { email_param: email });
+      
+      if (userIdError || !userId) {
+        toast.error('User with email ' + email + ' not found. The user must register first.', {
+          variant: 'destructive'
+        });
+        return false;
+      }
+      
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ role: 'super_admin' })
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      
+      // Log the action
+      await supabase.from('audit_logs').insert({
+        user_id: user.id,
+        action: 'set_super_admin',
+        entity_type: 'user_settings',
+        details: { email, role: 'super_admin' }
+      });
+      
+      toast.success(`User ${email} has been assigned as system super administrator`);
+      return true;
+    } catch (error) {
+      console.error('Error setting super admin:', error);
+      toast.error('Failed to assign super admin', {
+        variant: 'destructive'
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return {
-    loading,
+    isLoading, // Renamed from loading to isLoading
     users: filteredUsers,
     searchTerm,
     setSearchTerm,
     fetchAllUsers,
     updateUserRole,
-    blockUser
+    blockUser,
+    setSuperAdminStatus // Add this function to match tests
   };
 }
