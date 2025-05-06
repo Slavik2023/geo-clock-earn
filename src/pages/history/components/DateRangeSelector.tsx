@@ -3,30 +3,35 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { format, subDays } from "date-fns";
-import { DateRange } from "react-day-picker";
 
 interface DateRangeSelectorProps {
-  dateRange: DateRange;
-  setDateRange: (range: DateRange) => void;
+  startDate: Date;
+  endDate: Date;
+  onStartDateChange: (date: Date) => void;
+  onEndDateChange: (date: Date) => void;
 }
 
-export function DateRangeSelector({ dateRange, setDateRange }: DateRangeSelectorProps) {
+export function DateRangeSelector({ 
+  startDate, 
+  endDate, 
+  onStartDateChange, 
+  onEndDateChange 
+}: DateRangeSelectorProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   const handleQuickFilter = (days: number) => {
-    setDateRange({
-      from: subDays(new Date(), days),
-      to: new Date(),
-    });
+    const newStartDate = subDays(new Date(), days);
+    const newEndDate = new Date();
+    onStartDateChange(newStartDate);
+    onEndDateChange(newEndDate);
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Work History</h1>
+      <div className="flex flex-wrap items-center gap-2 justify-between">
+        <h2 className="text-lg font-medium">Date Range</h2>
         <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -35,23 +40,35 @@ export function DateRangeSelector({ dateRange, setDateRange }: DateRangeSelector
             >
               <CalendarIcon className="h-4 w-4" />
               <span>
-                {dateRange.from ? format(dateRange.from, "MMM d") : "Start date"} - 
-                {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "End date"}
+                {format(startDate, "MMM d")} - {format(endDate, "MMM d, yyyy")}
               </span>
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="end">
             <Calendar
               initialFocus
-              mode="range"
-              selected={dateRange}
-              onSelect={(newRange) => {
-                if (newRange) {
-                  setDateRange(newRange);
+              mode="single"
+              selected={startDate}
+              onSelect={(date) => {
+                if (date) {
+                  onStartDateChange(date);
                   setCalendarOpen(false);
                 }
               }}
-              numberOfMonths={2}
+              numberOfMonths={1}
+              className="pointer-events-auto"
+            />
+            <Calendar
+              initialFocus
+              mode="single"
+              selected={endDate}
+              onSelect={(date) => {
+                if (date) {
+                  onEndDateChange(date);
+                  setCalendarOpen(false);
+                }
+              }}
+              numberOfMonths={1}
               className="pointer-events-auto"
             />
           </PopoverContent>

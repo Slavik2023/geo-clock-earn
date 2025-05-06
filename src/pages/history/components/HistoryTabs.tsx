@@ -6,49 +6,51 @@ import { SessionsList } from "./SessionsList";
 import { AnalyticsCard } from "@/components/time-tracker/AnalyticsCard";
 
 interface HistoryTabsProps {
-  sessions: WorkSession[];
-  isLoading: boolean;
-  error: string | null;
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  activeTab: "all" | "range";
+  onTabChange: (tab: "all" | "range") => void;
+  sessions?: WorkSession[];
+  isLoading?: boolean;
+  error?: string | null;
 }
 
 export function HistoryTabs({
-  sessions,
-  isLoading,
-  error,
   activeTab,
-  setActiveTab
+  onTabChange,
+  sessions = [],
+  isLoading = false,
+  error = null
 }: HistoryTabsProps) {
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+    <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-4">
       <TabsList>
-        <TabsTrigger value="sessions" className="flex items-center gap-2">
+        <TabsTrigger value="all" className="flex items-center gap-2">
           <ClipboardListIcon className="h-4 w-4" />
-          Sessions
+          All Sessions
         </TabsTrigger>
-        <TabsTrigger value="analytics" className="flex items-center gap-2">
+        <TabsTrigger value="range" className="flex items-center gap-2">
           <BarChart2 className="h-4 w-4" />
-          Analytics
+          Date Range
         </TabsTrigger>
       </TabsList>
       
-      <TabsContent value="sessions" className="space-y-4">
-        <SessionsList 
-          sessions={sessions} 
-          isLoading={isLoading} 
-          error={error}
-        />
+      <TabsContent value="all" className="space-y-4">
+        {sessions && sessions.length > 0 ? (
+          <SessionsList 
+            sessions={sessions} 
+            isLoading={isLoading} 
+            error={error}
+          />
+        ) : null}
       </TabsContent>
       
-      <TabsContent value="analytics">
-        {sessions.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No data available for analytics. Track some work sessions first.
-          </div>
-        ) : (
-          <AnalyticsCard sessions={sessions} />
-        )}
+      <TabsContent value="range" className="space-y-4">
+        {sessions && sessions.length > 0 ? (
+          <SessionsList 
+            sessions={sessions} 
+            isLoading={isLoading} 
+            error={error}
+          />
+        ) : null}
       </TabsContent>
     </Tabs>
   );

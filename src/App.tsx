@@ -3,10 +3,11 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { useState, useEffect, createContext, useContext } from 'react';
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import AppLayout from '@/components/layout/AppLayout';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { TrackerPage } from "@/pages/TrackerPage";
 import { HistoryPage } from "@/pages/history";
 import { ProfilePage } from "@/pages/ProfilePage";
+import { AuthPage } from "@/pages/AuthPage";
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { syncOfflineSessionsToServer } from "@/components/time-tracker/services/sessionService";
@@ -64,6 +65,7 @@ function App() {
       <Router>
         <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
           <Routes>
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<AppLayout />}>
               <Route index element={<TrackerPage />} />
               <Route path="/history" element={<HistoryPage />} />
