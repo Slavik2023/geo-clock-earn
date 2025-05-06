@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+
+import { useEffect, useCallback } from "react";
 import { useAuth } from "@/App";
 import { toast } from "sonner";
 import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
@@ -91,6 +92,30 @@ export const useTimeTrackingActions = ({
       if (retryTimeout) clearTimeout(retryTimeout);
     };
   }, [errorOccurred, isTracking, retryAttempts, user?.id, startTime, createSession, saveSessionId, setErrorOccurred, setRetryAttempts, MAX_RETRY_ATTEMPTS]);
+
+  // Manual retry function
+  const retryConnection = useCallback(async () => {
+    if (!isTracking || !user?.id || !startTime) return;
+    
+    toast.info("Retrying connection to server...");
+    
+    try {
+      const sessionId = await createSession(startTime);
+      if (sessionId) {
+        console.log("Manual retry successful, session created with ID:", sessionId);
+        saveSessionId(sessionId);
+        setErrorOccurred(false);
+        setRetryAttempts(0);
+        toast.success("Connected to server and saved session");
+      } else {
+        console.error("Manual retry failed, no session ID returned");
+        toast.error("Connection failed. Your time will continue to be tracked locally.");
+      }
+    } catch (error) {
+      console.error("Error during manual retry:", error);
+      toast.error("Connection failed. Your time will continue to be tracked locally.");
+    }
+  }, [isTracking, user?.id, startTime, createSession, saveSessionId, setErrorOccurred, setRetryAttempts]);
 
   const handleToggleTimer = async () => {
     setIsLoading(true);
@@ -208,6 +233,7 @@ export const useTimeTrackingActions = ({
   };
 
   return {
-    handleToggleTimer
+    handleToggleTimer,
+    retryConnection
   };
 };

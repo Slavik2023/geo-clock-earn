@@ -1,15 +1,14 @@
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getOfflineSessions } from "@/components/time-tracker/services/sessionService";
-import { format } from "date-fns";
 
-export function useHomePageData(userId: string | undefined) {
+export const useHomePageData = (userId: string | undefined) => {
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [weekEarnings, setWeekEarnings] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [totalHours, setTotalHours] = useState(0);
   const [sessionsCount, setSessionsCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [connectionError, setConnectionError] = useState(false);
 
   const calculateOfflineEarnings = useCallback((sessions: any[]) => {
@@ -103,6 +102,9 @@ export function useHomePageData(userId: string | undefined) {
         return;
       }
       
+      // Connection successful, reset connection error state
+      setConnectionError(false);
+      
       // Fetch today's earnings
       const { data: todaySessions, error: todayError } = await supabase
         .from("sessions")
@@ -113,6 +115,9 @@ export function useHomePageData(userId: string | undefined) {
       
       if (todayError) {
         console.error("Error fetching today's earnings:", todayError);
+        if (todayError.message.includes("infinite recursion")) {
+          setConnectionError(true);
+        }
       } else {
         const todaySum = todaySessions.reduce((sum, session) => 
           sum + (session.earnings || 0), 0);
@@ -130,6 +135,9 @@ export function useHomePageData(userId: string | undefined) {
       
       if (weekError) {
         console.error("Error fetching week's earnings:", weekError);
+        if (weekError.message.includes("infinite recursion")) {
+          setConnectionError(true);
+        }
       } else {
         const weekSum = weekSessions.reduce((sum, session) => 
           sum + (session.earnings || 0), 0);
@@ -151,6 +159,9 @@ export function useHomePageData(userId: string | undefined) {
       
       if (monthError) {
         console.error("Error fetching month's sessions:", monthError);
+        if (monthError.message.includes("infinite recursion")) {
+          setConnectionError(true);
+        }
       } else if (monthSessions) {
         let totalHoursWorked = 0;
         
@@ -182,6 +193,20 @@ export function useHomePageData(userId: string | undefined) {
       }
     }
   }, [userId, calculateOfflineEarnings]);
+  
+  const retryConnection = useCallback(() => {
+    if (userId) {
+      fetchUserEarnings();
+    }
+  }, [userId, fetchUserEarnings]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchUserEarnings();
+    } else {
+      setIsLoading(false);
+    }
+  }, [userId, fetchUserEarnings]);
 
   return {
     todayEarnings,
@@ -190,6 +215,7 @@ export function useHomePageData(userId: string | undefined) {
     sessionsCount,
     isLoading,
     connectionError,
+    retryConnection,
     fetchUserEarnings
   };
-}
+};

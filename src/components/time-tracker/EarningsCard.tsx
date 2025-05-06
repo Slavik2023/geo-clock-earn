@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDistanceStrict } from "date-fns";
 import { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface EarningsCardProps {
   hourlyRate: number;
@@ -12,6 +13,7 @@ interface EarningsCardProps {
   overtimeThresholdHours?: number;
   totalBreakTime?: number; // in minutes
   hasError?: boolean;
+  onRetryConnection?: () => void;
 }
 
 export function EarningsCard({ 
@@ -21,7 +23,8 @@ export function EarningsCard({
   isActive = false,
   overtimeThresholdHours = 8,
   totalBreakTime = 0,
-  hasError = false
+  hasError = false,
+  onRetryConnection
 }: EarningsCardProps) {
   const [earnings, setEarnings] = useState({ total: 0, regular: 0, overtime: 0 });
   const [duration, setDuration] = useState({ hours: 0, formatted: "0h 0m", net: "0h 0m" });
@@ -168,12 +171,22 @@ export function EarningsCard({
             
             {hasError && isActive && (
               <div className="mt-3 pt-3 border-t">
-                <div className="text-amber-500 text-xs flex items-center gap-1">
-                  <AlertCircle size={14} />
+                <div className="text-amber-600 text-sm flex items-center gap-1 mb-2">
+                  <AlertCircle size={16} />
                   <span>
                     Session not saved to server. Earnings will be estimated locally until connection is restored.
                   </span>
                 </div>
+                {onRetryConnection && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full text-amber-700 border-amber-300 hover:bg-amber-100"
+                    onClick={onRetryConnection}
+                  >
+                    Retry Connection
+                  </Button>
+                )}
               </div>
             )}
           </div>

@@ -3,13 +3,13 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/App";
 import { motion } from "framer-motion";
-import { AlertTriangle } from "lucide-react";
 import { HomeGreeting } from "./components/HomeGreeting";
 import { HomeStatistics } from "./components/HomeStatistics";
 import { QuickActions } from "./components/QuickActions";
 import { QuickAccess } from "./components/QuickAccess";
 import { getOfflineSessions } from "@/components/time-tracker/services/sessionService";
 import { useHomePageData } from "./hooks/useHomePageData";
+import { ConnectionErrorBanner } from "@/components/time-tracker/ConnectionErrorBanner";
 
 export function HomePage() {
   const { toast } = useToast();
@@ -24,6 +24,7 @@ export function HomePage() {
     sessionsCount,
     isLoading,
     connectionError,
+    retryConnection,
     fetchUserEarnings
   } = useHomePageData(user?.id);
   
@@ -73,10 +74,11 @@ export function HomePage() {
           initial="hidden"
           animate="visible"
           variants={fadeInUp}
-          className="bg-amber-50 border border-amber-200 rounded-md p-3 text-amber-700 text-sm flex items-center gap-2"
         >
-          <AlertTriangle size={16} />
-          <span>Connection to the server failed. Some data may not be up to date.</span>
+          <ConnectionErrorBanner 
+            message="Connection to the server failed. Some data may not be up to date."
+            onRetry={retryConnection}
+          />
         </motion.div>
       )}
 

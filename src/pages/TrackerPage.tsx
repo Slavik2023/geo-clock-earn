@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Clock } from "@/components/time-tracker/Clock";
 import { TimerButton } from "@/components/time-tracker/TimerButton";
 import { EnhancedLocationCheck } from "@/components/time-tracker/EnhancedLocationCheck";
@@ -8,6 +8,7 @@ import { CurrentLocationCard } from "@/components/time-tracker/CurrentLocationCa
 import { useTimeTracking } from "@/hooks/time-tracking";
 import { LunchBreakButton } from "@/components/time-tracker/LunchBreakButton";
 import { toast } from "sonner";
+import { ConnectionErrorBanner } from "@/components/time-tracker/ConnectionErrorBanner";
 
 export function TrackerPage() {
   const [isLocationVerified, setIsLocationVerified] = useState(false);
@@ -25,7 +26,8 @@ export function TrackerPage() {
     handleToggleTimer,
     lunchBreakActive,
     startLunchBreak,
-    totalBreakTime
+    totalBreakTime,
+    retryConnection
   } = useTimeTracking({ isLocationVerified });
 
   // Automatically verify location if one is detected
@@ -43,6 +45,15 @@ export function TrackerPage() {
 
   return (
     <div className="flex flex-col items-center justify-center space-y-8">
+      {errorOccurred && isTracking && (
+        <div className="w-full max-w-md">
+          <ConnectionErrorBanner 
+            message="Error saving session to server. Your time will be tracked locally until connection is restored."
+            onRetry={retryConnection}
+          />
+        </div>
+      )}
+      
       <Clock />
       
       <div className="w-full max-w-md">
@@ -82,6 +93,7 @@ export function TrackerPage() {
           overtimeThresholdHours={overtimeThreshold}
           totalBreakTime={totalBreakTime}
           hasError={errorOccurred}
+          onRetryConnection={retryConnection}
         />
       </div>
     </div>
