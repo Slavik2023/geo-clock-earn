@@ -27,6 +27,7 @@ export function TimerButton({
           : "bg-brand-blue hover:bg-brand-blue-600",
         isLoading && "opacity-70"
       )}
+      aria-label={isActive ? "Stop timer" : "Start timer"}
     >
       <div className="flex flex-col items-center justify-center">
         {isLoading ? (

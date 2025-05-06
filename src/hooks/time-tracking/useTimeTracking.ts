@@ -18,6 +18,8 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [locationDetails, setLocationDetails] = useState<LocationDetails | null>(null);
+  const [localTimerActive, setLocalTimerActive] = useState(false);
+  const [errorOccurred, setErrorOccurred] = useState(false);
   
   // Auto-detect location on initial load
   useEffect(() => {
@@ -95,6 +97,7 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
 
   const handleToggleTimer = async () => {
     setIsLoading(true);
+    setErrorOccurred(false);
 
     try {
       if (!isTracking) {
@@ -102,6 +105,7 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
         const now = new Date();
         setStartTime(now);
         setIsTracking(true);
+        setLocalTimerActive(true);
         
         // Save to local storage first
         saveTimerSession(now, locationDetails);
@@ -109,15 +113,25 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
         // Then create the session in the database if user is logged in
         if (user?.id) {
           console.log("Creating session for user:", user.id);
-          const sessionId = await createSession(now);
-          if (sessionId) {
-            console.log("Session created with ID:", sessionId);
-            saveSessionId(sessionId);
-          } else {
-            console.error("Failed to create session, no ID returned");
+          try {
+            const sessionId = await createSession(now);
+            if (sessionId) {
+              console.log("Session created with ID:", sessionId);
+              saveSessionId(sessionId);
+            } else {
+              console.error("Failed to create session, no ID returned");
+              setErrorOccurred(true);
+              // Continue with local timer despite the error
+              toast.error("Failed to save session to server, but local timer is running");
+            }
+          } catch (error) {
+            console.error("Error creating session:", error);
+            setErrorOccurred(true);
+            // Continue with local timer despite the error
+            toast.error("Failed to save session to server, but local timer is running");
           }
         } else {
-          console.log("No user ID available, not creating session in database");
+          console.log("No user ID available, using local timer only");
         }
         
         toast.success("Timer started");
@@ -126,29 +140,41 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
         const now = new Date();
         
         // Complete the session in the database
-        if (user?.id && currentSessionId) {
+        if (user?.id && currentSessionId && !errorOccurred) {
           console.log("Completing session:", currentSessionId);
-          const result = await completeSession(now);
-          
-          if (result) {
-            const { totalEarnings, overtimeEarnings } = result;
+          try {
+            const result = await completeSession(now);
             
-            toast.success(
-              `Timer stopped. Earned: $${totalEarnings.toFixed(2)} ${overtimeEarnings > 0 ? `(including $${overtimeEarnings.toFixed(2)} overtime)` : ""}`
-            );
-          } else {
-            console.error("Error completing session, no result returned");
-            toast.error("Error completing session");
+            if (result) {
+              const { totalEarnings, overtimeEarnings } = result;
+              
+              toast.success(
+                `Timer stopped. Earned: $${totalEarnings.toFixed(2)} ${overtimeEarnings > 0 ? `(including $${overtimeEarnings.toFixed(2)} overtime)` : ""}`
+              );
+            } else {
+              console.error("Error completing session, no result returned");
+              toast.error("Error completing session, but time has been tracked locally");
+            }
+          } catch (error) {
+            console.error("Error stopping timer:", error);
+            toast.error("Error saving to server, but time has been tracked locally");
           }
         } else {
-          console.log("No user ID or session ID available, not updating database");
-          toast.success("Timer stopped");
+          console.log("Using local timer only, not updating database");
+          
+          // Calculate earnings based on local timer
+          const durationMs = now.getTime() - (startTime?.getTime() || now.getTime());
+          const durationHours = durationMs / (1000 * 60 * 60);
+          const earnings = durationHours * hourlyRate;
+          
+          toast.success(`Timer stopped. Approximate earnings: $${earnings.toFixed(2)}`);
         }
         
         // Reset state
         setStartTime(null);
         setCurrentSessionId(null);
         setIsTracking(false);
+        setLocalTimerActive(false);
         clearTimerStorage();
       }
     } catch (error) {

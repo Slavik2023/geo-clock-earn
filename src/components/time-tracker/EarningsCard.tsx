@@ -2,7 +2,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDistanceStrict } from "date-fns";
 import { useState, useEffect } from "react";
-import { Clock } from "lucide-react";
 
 interface EarningsCardProps {
   hourlyRate: number;
@@ -28,19 +27,22 @@ export function EarningsCard({
   
   // Update calculations every second when timer is active
   useEffect(() => {
-    if (!isActive || !startTime) {
+    if (!isActive) {
       setEarnings({ total: 0, regular: 0, overtime: 0 });
       setDuration({ hours: 0, formatted: "0h 0m", net: "0h 0m" });
       return;
     }
     
+    // If active but no startTime (should never happen), use current time as fallback
+    const effectiveStartTime = startTime || new Date();
+    
     const calculateEarnings = () => {
       const now = new Date();
-      const grossDurationMs = now.getTime() - startTime.getTime();
+      const grossDurationMs = now.getTime() - effectiveStartTime.getTime();
       
       // Subtract break time
       const breakTimeMs = totalBreakTime * 60 * 1000;
-      const netDurationMs = grossDurationMs - breakTimeMs;
+      const netDurationMs = Math.max(grossDurationMs - breakTimeMs, 0); // Ensure non-negative
       
       const durationHours = netDurationMs / (1000 * 60 * 60);
       
@@ -64,11 +66,12 @@ export function EarningsCard({
         total: regularEarnings + overtimeEarnings
       });
       
-      const grossFormatted = formatDistanceStrict(now, startTime, { addSuffix: false });
+      // Format as hours and minutes
+      const grossFormatted = formatDistanceStrict(now, effectiveStartTime, { addSuffix: false });
       
       // Calculate net time (gross time minus breaks)
       const netTime = new Date(now.getTime() - breakTimeMs);
-      const netTimeStart = new Date(startTime.getTime());
+      const netTimeStart = new Date(effectiveStartTime.getTime());
       const netFormatted = formatDistanceStrict(netTime, netTimeStart, { addSuffix: false });
       
       setDuration({
@@ -108,7 +111,7 @@ export function EarningsCard({
               </div>
             )}
             
-            {isActive && startTime && (
+            {isActive && (
               <>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Gross Time:</span>
@@ -127,10 +130,10 @@ export function EarningsCard({
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Start Time:</span>
                   <span>
-                    {startTime.toLocaleTimeString([], { 
+                    {startTime ? startTime.toLocaleTimeString([], { 
                       hour: '2-digit', 
                       minute: '2-digit' 
-                    })}
+                    }) : '--:--'}
                   </span>
                 </div>
               </>
