@@ -108,10 +108,16 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
         
         // Then create the session in the database if user is logged in
         if (user?.id) {
+          console.log("Creating session for user:", user.id);
           const sessionId = await createSession(now);
           if (sessionId) {
+            console.log("Session created with ID:", sessionId);
             saveSessionId(sessionId);
+          } else {
+            console.error("Failed to create session, no ID returned");
           }
+        } else {
+          console.log("No user ID available, not creating session in database");
         }
         
         toast.success("Timer started");
@@ -121,6 +127,7 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
         
         // Complete the session in the database
         if (user?.id && currentSessionId) {
+          console.log("Completing session:", currentSessionId);
           const result = await completeSession(now);
           
           if (result) {
@@ -130,9 +137,11 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
               `Timer stopped. Earned: $${totalEarnings.toFixed(2)} ${overtimeEarnings > 0 ? `(including $${overtimeEarnings.toFixed(2)} overtime)` : ""}`
             );
           } else {
+            console.error("Error completing session, no result returned");
             toast.error("Error completing session");
           }
         } else {
+          console.log("No user ID or session ID available, not updating database");
           toast.success("Timer stopped");
         }
         

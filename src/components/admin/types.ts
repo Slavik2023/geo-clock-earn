@@ -1,5 +1,5 @@
 
-import { UserRoleType } from "@/hooks/user-settings/useUserRole";
+import { UserRoleType } from "@/hooks/user-settings";
 
 export interface UserInfo {
   id: string;

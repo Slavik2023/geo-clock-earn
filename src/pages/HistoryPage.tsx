@@ -8,10 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
-import { CalendarIcon, BarChart2, ClipboardListIcon } from "lucide-react";
+import { CalendarIcon, BarChart2, ClipboardListIcon, Download } from "lucide-react";
 import { AnalyticsCard } from "@/components/time-tracker/AnalyticsCard";
 import { DateRange } from "react-day-picker";
 import { useLocation } from "react-router-dom";
+import { ExportButton } from "@/components/time-tracker/exports/ExportButton";
 
 export function HistoryPage() {
   const [sessions, setSessions] = useState<WorkSession[]>([]);
@@ -127,6 +128,21 @@ export function HistoryPage() {
         >
           Last 90 Days
         </Button>
+        
+        <div className="flex-1"></div>
+        
+        <ExportButton 
+          sessions={sessions}
+          isLoading={isLoading}
+          exportType="excel"
+          className="ml-auto"
+        />
+        
+        <ExportButton 
+          sessions={sessions}
+          isLoading={isLoading}
+          exportType="pdf"
+        />
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

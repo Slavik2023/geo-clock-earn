@@ -40,16 +40,20 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log("Setting up auth provider...");
+    
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Auth state changed:", event);
         if (currentSession) {
           // Only update state if there's a valid session
+          console.log("Auth state change: Got valid session", currentSession);
           setSession(currentSession);
           setUser(currentSession.user);
         } else if (event === 'SIGNED_OUT') {
           // Clear state on sign out
+          console.log("Auth state change: User signed out");
           setSession(null);
           setUser(null);
         }
@@ -59,11 +63,12 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Then check for existing session
     const initializeAuth = async () => {
       try {
+        console.log("Checking for existing session...");
         const { data } = await supabase.auth.getSession();
         if (data.session) {
+          console.log("Restored existing session for user:", data.session.user.email);
           setSession(data.session);
           setUser(data.session.user);
-          console.log("Restored existing session for user:", data.session.user.email);
         } else {
           console.log("No existing session found");
         }
@@ -77,6 +82,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     initializeAuth();
 
     return () => {
+      console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };
   }, []);

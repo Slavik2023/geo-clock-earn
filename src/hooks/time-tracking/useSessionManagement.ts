@@ -28,12 +28,15 @@ export function useSessionManagement({
   const { toast } = useToast();
   const [endTime, setEndTime] = useState<Date | null>(null);
 
-  // Create a new session in the database with a simplified approach
+  // Create a new session in the database
   const createSession = async (now: Date) => {
-    if (!userId || !locationDetails) return null;
+    if (!userId || !locationDetails) {
+      console.error("Missing userId or locationDetails, cannot create session");
+      return null;
+    }
 
     // Define the required fields explicitly to match the database schema
-    const sessionData = {
+    const sessionData: any = {
       user_id: userId,
       start_time: now.toISOString(),
       hourly_rate: locationDetails.hourly_rate || hourlyRate,
@@ -67,16 +70,24 @@ export function useSessionManagement({
       } else if (data && data[0]) {
         console.log("Session created successfully:", data[0]);
         return data[0].id;
+      } else {
+        console.error("No data returned from session creation");
+        return null;
       }
     } catch (error) {
-      console.error("Error creating session:", error);
+      console.error("Exception creating session:", error);
+      return null;
     }
-    return null;
   };
 
   // Complete the current session
   const completeSession = async (now: Date) => {
-    if (!startTime || !currentSessionId) return;
+    if (!startTime || !currentSessionId || !userId) {
+      console.error("Missing required data for completing session", { 
+        startTime, currentSessionId, userId 
+      });
+      return;
+    }
 
     const durationMs = now.getTime() - startTime.getTime();
     
@@ -126,7 +137,7 @@ export function useSessionManagement({
         return false;
       }
       
-      // Create overtime period if applicable, using a direct approach without joins
+      // Create overtime period if applicable
       if (overtimeHours > 0 && userId) {
         const overtimeStart = new Date(startTime.getTime() + (overtimeThreshold * 60 * 60 * 1000) + breakTimeMs);
         
@@ -159,7 +170,7 @@ export function useSessionManagement({
         totalBreakTime
       };
     } catch (error) {
-      console.error("Error updating session:", error);
+      console.error("Exception updating session:", error);
       return false;
     }
   };

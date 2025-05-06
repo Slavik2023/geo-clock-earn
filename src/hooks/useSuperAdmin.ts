@@ -1,123 +1,120 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { Json } from "@/integrations/supabase/types";
+import { toast } from "sonner";
+import { useAuth } from "@/App";
+import { useUserSettings } from "./user-settings";
 
 export function useSuperAdmin() {
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const { isSuperAdmin } = useUserSettings();
+  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Create audit log as a separate function
-  const createAuditLog = async (email: string) => {
+  const fetchAllUsers = async () => {
+    if (!user || !isSuperAdmin) return;
+    
+    setLoading(true);
     try {
-      const { data } = await supabase.auth.getUser();
-      const currentUserId = data?.user?.id || 'system';
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('*');
       
-      // Create a plain object that conforms to Json type
-      const auditDetails = {
-        email,
-        role: "super_admin"
-      };
+      if (error) throw error;
       
-      // Create the audit log entry
-      await supabase.from("audit_logs").insert({
-        user_id: currentUserId,
-        action: "set_super_admin",
-        entity_type: "user_settings",
-        details: auditDetails as Json
-      });
-    } catch (logError) {
-      console.error("Error creating audit log:", logError);
+      setUsers(data || []);
+      setFilteredUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to load users');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const setSuperAdminStatus = async (email: string): Promise<boolean> => {
-    setIsLoading(true);
+  useEffect(() => {
+    if (isSuperAdmin) {
+      fetchAllUsers();
+    }
+  }, [isSuperAdmin, user]);
+
+  // Filter users based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredUsers(users);
+      return;
+    }
     
+    const term = searchTerm.toLowerCase();
+    const filtered = users.filter(user => 
+      user.name?.toLowerCase().includes(term) || 
+      user.email?.toLowerCase().includes(term) ||
+      user.role?.toLowerCase().includes(term)
+    );
+    
+    setFilteredUsers(filtered);
+  }, [searchTerm, users]);
+
+  const updateUserRole = async (userId: string, role: string) => {
+    if (!user || !isSuperAdmin) return false;
+    
+    setLoading(true);
     try {
-      // First, get the user ID by email
-      const { data: users, error: userError } = await supabase
-        .from("user_settings")
-        .select("user_id")
-        .eq("email", email);
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ role })
+        .eq('user_id', userId);
       
-      if (userError) throw userError;
+      if (error) throw error;
       
-      // Handle case when user is not found
-      if (!users || users.length === 0) {
-        // User not found, create a record for this email in user_settings
-        // Get the user ID from auth.users
-        const { data: authData, error: authError } = await supabase
-          .rpc("get_user_id_by_email", { email_param: email });
-        
-        if (authError || !authData) {
-          toast({
-            title: "Error",
-            description: `User with email ${email} not found. The user must register first.`,
-            variant: "destructive"
-          });
-          return false;
-        }
-        
-        // Create the user settings record with admin privileges
-        const { error: insertError } = await supabase
-          .from("user_settings")
-          .insert({
-            user_id: authData,
-            email: email,
-            name: "Super Admin",
-            is_admin: true,
-            role: "super_admin",
-            subscription_status: "premium",
-            hourly_rate: 100
-          });
-        
-        if (insertError) {
-          throw insertError;
-        }
-      } else {
-        // User found, update to super admin status
-        const userId = users[0].user_id;
-        
-        const { error: updateError } = await supabase
-          .from("user_settings")
-          .update({
-            is_admin: true,
-            role: "super_admin",
-            subscription_status: "premium"
-          })
-          .eq("user_id", userId);
-        
-        if (updateError) {
-          throw updateError;
-        }
-      }
-      
-      // Create audit log separately
-      await createAuditLog(email);
-      
-      toast({
-        title: "Success",
-        description: `User ${email} has been assigned as system super administrator`,
-      });
-      
+      toast.success('User role updated successfully');
+      await fetchAllUsers();
       return true;
     } catch (error) {
-      console.error("Error setting super admin status:", error);
-      toast({
-        title: "Error",
-        description: "Failed to assign super admin",
-        variant: "destructive"
-      });
+      console.error('Error updating user role:', error);
+      toast.error('Failed to update user role');
       return false;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const blockUser = async (userId: string, isBlocked: boolean) => {
+    if (!user || !isSuperAdmin) return false;
+    
+    setLoading(true);
+    try {
+      // If blocking, set role to 'blocked', otherwise back to 'user'
+      const role = isBlocked ? 'blocked' : 'user';
+      
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ role })
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      
+      toast.success(`User ${isBlocked ? 'blocked' : 'unblocked'} successfully`);
+      await fetchAllUsers();
+      return true;
+    } catch (error) {
+      console.error('Error blocking/unblocking user:', error);
+      toast.error(`Failed to ${isBlocked ? 'block' : 'unblock'} user`);
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
   return {
-    isLoading,
-    setSuperAdminStatus
+    loading,
+    users: filteredUsers,
+    searchTerm,
+    setSearchTerm,
+    fetchAllUsers,
+    updateUserRole,
+    blockUser
   };
 }
