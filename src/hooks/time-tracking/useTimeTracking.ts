@@ -102,8 +102,7 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
     setErrorOccurred,
     retryAttempts,
     setRetryAttempts,
-    setLocalTimerActive,
-    user
+    setLocalTimerActive
   });
 
   return {

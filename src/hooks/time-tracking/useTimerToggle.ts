@@ -1,9 +1,8 @@
 
 import { useCallback } from "react";
+import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
 import { useTimerStart } from "./useTimerStart";
 import { useTimerStop } from "./useTimerStop";
-import { useTimerErrorHandler } from "./useTimerErrorHandler";
-import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
 
 interface UseTimerToggleProps {
   isTracking: boolean;
@@ -13,64 +12,62 @@ interface UseTimerToggleProps {
   setCurrentSessionId: (id: string | null) => void;
   setIsTracking: (isTracking: boolean) => void;
   saveTimerSession: (now: Date, locationDetails: LocationDetails | null) => void;
+  saveSessionId: (id: string) => void;
   clearTimerStorage: () => void;
   createSession: (now: Date) => Promise<string | null>;
   completeSession: (now: Date) => Promise<any>;
   locationDetails: LocationDetails | null;
-  hourlyRate: number;
-  overtimeRate: number;
-  overtimeThreshold: number;
-  totalBreakTime: number;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
   errorOccurred: boolean;
   setErrorOccurred: (error: boolean) => void;
-  retryAttempts: number;
-  setRetryAttempts: (attempts: number) => void;
   setLocalTimerActive: (active: boolean) => void;
-  saveSessionId: (id: string) => void;
   user: { id?: string } | null;
 }
 
 export const useTimerToggle = (props: UseTimerToggleProps) => {
-  const {
-    isTracking,
-    setIsLoading,
-    errorOccurred
-  } = props;
+  // Use timer start hook
+  const { startTimer } = useTimerStart({
+    setStartTime: props.setStartTime,
+    setIsTracking: props.setIsTracking,
+    locationDetails: props.locationDetails,
+    saveTimerSession: props.saveTimerSession,
+    createSession: props.createSession,
+    saveSessionId: props.saveSessionId,
+    setIsLoading: props.setIsLoading,
+    setErrorOccurred: props.setErrorOccurred,
+    setLocalTimerActive: props.setLocalTimerActive,
+    user: props.user
+  });
   
-  // Use the specialized hooks
-  const { startTimer } = useTimerStart(props);
-  const { stopTimer } = useTimerStop(props);
-  const { handleError } = useTimerErrorHandler();
-
+  // Use timer stop hook
+  const { stopTimer } = useTimerStop({
+    startTime: props.startTime,
+    setStartTime: props.setStartTime,
+    setIsTracking: props.setIsTracking,
+    currentSessionId: props.currentSessionId,
+    setCurrentSessionId: props.setCurrentSessionId,
+    clearTimerStorage: props.clearTimerStorage,
+    completeSession: props.completeSession,
+    setIsLoading: props.setIsLoading,
+    setLocalTimerActive: props.setLocalTimerActive
+  });
+  
+  // Timer toggle handler
   const handleToggleTimer = useCallback(async () => {
-    setIsLoading(true);
-
-    try {
-      const now = new Date();
-      
-      if (!isTracking) {
-        // Starting the timer
-        await startTimer(now);
-      } else {
-        // Stopping the timer
-        await stopTimer(now);
-      }
-    } catch (error) {
-      handleError(error);
-    } finally {
-      setIsLoading(false);
+    if (props.isLoading) return;
+    
+    if (props.isTracking) {
+      await stopTimer();
+    } else {
+      await startTimer();
     }
   }, [
-    isTracking,
-    startTimer,
-    stopTimer,
-    handleError,
-    setIsLoading
+    props.isTracking, 
+    props.isLoading, 
+    startTimer, 
+    stopTimer
   ]);
 
-  return {
-    handleToggleTimer
-  };
+  return { handleToggleTimer };
 };
