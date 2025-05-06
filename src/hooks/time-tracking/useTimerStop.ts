@@ -21,6 +21,7 @@ interface UseTimerStopProps {
   totalBreakTime: number;
   errorOccurred: boolean;
   user: { id?: string } | null;
+  setIsLoading: (loading: boolean) => void;
 }
 
 export const useTimerStop = ({
@@ -40,7 +41,8 @@ export const useTimerStop = ({
   overtimeThreshold,
   totalBreakTime,
   errorOccurred,
-  user
+  user,
+  setIsLoading
 }: UseTimerStopProps) => {
   
   const stopTimer = async (now: Date) => {

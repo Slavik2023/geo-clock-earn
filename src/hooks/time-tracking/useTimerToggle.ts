@@ -23,6 +23,11 @@ interface UseTimerToggleProps {
   setErrorOccurred: (error: boolean) => void;
   setLocalTimerActive: (active: boolean) => void;
   user: { id?: string } | null;
+  setRetryAttempts: (attempts: number) => void;
+  hourlyRate: number;
+  overtimeRate: number;
+  overtimeThreshold: number;
+  totalBreakTime: number;
 }
 
 export const useTimerToggle = (props: UseTimerToggleProps) => {
@@ -50,7 +55,16 @@ export const useTimerToggle = (props: UseTimerToggleProps) => {
     clearTimerStorage: props.clearTimerStorage,
     completeSession: props.completeSession,
     setIsLoading: props.setIsLoading,
-    setLocalTimerActive: props.setLocalTimerActive
+    setLocalTimerActive: props.setLocalTimerActive,
+    locationDetails: props.locationDetails,
+    hourlyRate: props.hourlyRate,
+    overtimeRate: props.overtimeRate,
+    overtimeThreshold: props.overtimeThreshold,
+    totalBreakTime: props.totalBreakTime,
+    errorOccurred: props.errorOccurred,
+    user: props.user,
+    setErrorOccurred: props.setErrorOccurred,
+    setRetryAttempts: props.setRetryAttempts
   });
   
   // Timer toggle handler
@@ -58,7 +72,7 @@ export const useTimerToggle = (props: UseTimerToggleProps) => {
     if (props.isLoading) return;
     
     if (props.isTracking) {
-      await stopTimer();
+      await stopTimer(new Date());
     } else {
       await startTimer();
     }
