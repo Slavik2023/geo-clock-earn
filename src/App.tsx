@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import { useEffect, useState, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from '@supabase/supabase-js';
+import { toast } from "sonner";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,54 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Helper function to ensure user settings exist
+  const ensureUserSettings = async (currentUser: User) => {
+    try {
+      // First check if user settings already exist
+      const { data: existingSettings, error: checkError } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error("Error checking user settings:", checkError);
+        return;
+      }
+      
+      // If settings don't exist, create them
+      if (!existingSettings) {
+        console.log("No user settings found, creating...");
+        const email = currentUser.email || '';
+        
+        const { error: insertError } = await supabase
+          .from('user_settings')
+          .insert({
+            user_id: currentUser.id,
+            name: email.split('@')[0], // Use part of email as initial name
+            hourly_rate: 25,
+            overtime_rate: 37.5,
+            overtime_threshold: 8,
+            enable_location_verification: true,
+            enable_overtime_calculation: true,
+            role: 'user',
+            is_admin: false
+          });
+        
+        if (insertError) {
+          console.error("Error creating user settings:", insertError);
+          toast.error("Failed to set up your profile. Some features may be limited.");
+        } else {
+          console.log("User settings created successfully");
+        }
+      } else {
+        console.log("User settings exist:", existingSettings);
+      }
+    } catch (error) {
+      console.error("Error in ensureUserSettings:", error);
+    }
+  };
+
   useEffect(() => {
     console.log("Setting up auth provider...");
     
@@ -51,6 +100,14 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log("Auth state change: Got valid session", currentSession);
           setSession(currentSession);
           setUser(currentSession.user);
+          
+          // When user signs in, ensure they have user settings
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            // Use setTimeout to prevent potential deadlock with Supabase auth state changes
+            setTimeout(() => {
+              ensureUserSettings(currentSession.user);
+            }, 0);
+          }
         } else if (event === 'SIGNED_OUT') {
           // Clear state on sign out
           console.log("Auth state change: User signed out");
@@ -69,6 +126,11 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log("Restored existing session for user:", data.session.user.email);
           setSession(data.session);
           setUser(data.session.user);
+          
+          // Ensure user settings exist for the restored session
+          setTimeout(() => {
+            ensureUserSettings(data.session.user);
+          }, 0);
         } else {
           console.log("No existing session found");
         }

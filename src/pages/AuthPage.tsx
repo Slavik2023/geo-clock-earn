@@ -13,6 +13,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -30,7 +31,7 @@ export function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const { user, isLoading } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -56,6 +57,48 @@ export function AuthPage() {
     }
   }, [user, isLoading, navigate]);
 
+  const createUserSettings = async (userId: string, email: string) => {
+    try {
+      console.log("Creating user settings for:", userId, email);
+      
+      // First check if user settings already exist
+      const { data: existingSettings, error: checkError } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (checkError) throw checkError;
+      
+      if (existingSettings) {
+        console.log("User settings already exist, no need to create");
+        return;
+      }
+      
+      // Create new user settings
+      const { error: insertError } = await supabase
+        .from('user_settings')
+        .insert({
+          user_id: userId,
+          name: email.split('@')[0], // Use part of email as initial name
+          hourly_rate: 25,
+          overtime_rate: 37.5,
+          overtime_threshold: 8,
+          enable_location_verification: true,
+          enable_overtime_calculation: true,
+          role: 'user',
+          is_admin: false
+        });
+      
+      if (insertError) throw insertError;
+      
+      console.log("User settings created successfully");
+    } catch (error) {
+      console.error("Error creating user settings:", error);
+      toast.error("Your account was created but we couldn't set up your profile. Please contact support.");
+    }
+  };
+
   const handleAuthentication = async (values: z.infer<typeof formSchema>) => {
     const { email, password } = values;
     setLoading(true);
@@ -64,7 +107,7 @@ export function AuthPage() {
     try {
       if (isLogin) {
         console.log("Attempting to login with:", email);
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
@@ -76,13 +119,13 @@ export function AuthPage() {
         }
 
         // The redirect will happen automatically via the AuthContext
-        toast({
+        uiToast({
           title: "Welcome!",
           description: "You have successfully logged in.",
         });
       } else {
         console.log("Attempting to signup with:", email);
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -95,15 +138,22 @@ export function AuthPage() {
           setAuthError(error.message);
           return;
         }
-
-        toast({
-          title: "Account Created",
-          description: "You can login with your new credentials.",
-        });
         
-        // Switch to login mode after successful signup
-        setIsLogin(true);
-        form.reset();
+        if (data.user) {
+          // Create user settings in the database
+          await createUserSettings(data.user.id, email);
+          
+          uiToast({
+            title: "Account Created",
+            description: "You can login with your new credentials.",
+          });
+          
+          // Switch to login mode after successful signup
+          setIsLogin(true);
+          form.reset();
+        } else {
+          setAuthError("Could not create user. Please try again.");
+        }
       }
     } catch (error) {
       console.error("Unexpected authentication error:", error);

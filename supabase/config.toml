@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.update_user_metadata]
 verify_jwt = true
+
+[functions.init-user-settings]
+verify_jwt = false
