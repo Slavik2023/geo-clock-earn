@@ -49,8 +49,7 @@ export const useTimeTrackingActions = (props: UseTimeTrackingActionsProps) => {
   // Use timer toggle hook
   const { handleToggleTimer } = useTimerToggle({
     ...props,
-    user,
-    saveSessionId: props.saveSessionId
+    user
   });
 
   return {
