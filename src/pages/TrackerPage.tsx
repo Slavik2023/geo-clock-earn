@@ -20,6 +20,7 @@ export function TrackerPage() {
     overtimeRate,
     overtimeThreshold,
     locationDetails,
+    errorOccurred,
     handleLocationVerified,
     handleToggleTimer,
     lunchBreakActive,
@@ -62,6 +63,7 @@ export function TrackerPage() {
           onToggle={handleToggleTimer} 
           isLoading={isLoading}
           disabled={!isLocationVerified && !isTracking}
+          hasError={errorOccurred}
         />
         
         <LunchBreakButton 
@@ -79,6 +81,7 @@ export function TrackerPage() {
           isActive={isTracking}
           overtimeThresholdHours={overtimeThreshold}
           totalBreakTime={totalBreakTime}
+          hasError={errorOccurred}
         />
       </div>
     </div>

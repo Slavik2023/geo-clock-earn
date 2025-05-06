@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { LocationDetails } from "@/components/time-tracker/types/LocationTypes";
 
 interface UseSessionManagementProps {
@@ -25,8 +25,8 @@ export function useSessionManagement({
   startTime,
   currentSessionId
 }: UseSessionManagementProps) {
-  const { toast } = useToast();
   const [endTime, setEndTime] = useState<Date | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Create a new session in the database
   const createSession = async (now: Date) => {
@@ -54,6 +54,24 @@ export function useSessionManagement({
     console.log("Creating session with data:", sessionData);
     
     try {
+      // First, check if the user can access the database
+      const { error: pingError } = await supabase
+        .from("user_settings")
+        .select("id")
+        .eq("user_id", userId)
+        .limit(1);
+        
+      if (pingError) {
+        console.error("Database connection test failed:", pingError);
+        
+        // If we can't even access the database, don't attempt to create a session
+        if (pingError.message.includes("infinite recursion") || 
+            pingError.message.includes("JWT") || 
+            pingError.message.includes("auth")) {
+          return null;
+        }
+      }
+      
       const { data, error } = await supabase
         .from("sessions")
         .insert(sessionData)
@@ -61,11 +79,13 @@ export function useSessionManagement({
       
       if (error) {
         console.error("Error creating session:", error);
-        toast({
-          variant: "destructive",
-          title: "Error Starting Timer",
-          description: error.message || "There was an error starting the timer."
-        });
+        
+        if (isRetrying) {
+          // If this was already a retry attempt, don't show another toast
+          console.log("Retry also failed");
+        } else {
+          toast.error("Error saving session to server, local timer will continue");
+        }
         return null;
       } else if (data && data[0]) {
         console.log("Session created successfully:", data[0]);
@@ -86,7 +106,7 @@ export function useSessionManagement({
       console.error("Missing required data for completing session", { 
         startTime, currentSessionId, userId 
       });
-      return;
+      return null;
     }
 
     const durationMs = now.getTime() - startTime.getTime();
@@ -119,6 +139,30 @@ export function useSessionManagement({
     });
     
     try {
+      // First, check if we can connect to the database
+      const { error: pingError } = await supabase
+        .from("user_settings")
+        .select("id")
+        .eq("user_id", userId)
+        .limit(1);
+        
+      if (pingError) {
+        console.error("Database connection test failed:", pingError);
+        // If we can't access the database, return the earnings calculation
+        // so we can still show the user their earnings
+        if (pingError.message.includes("infinite recursion") || 
+            pingError.message.includes("JWT") || 
+            pingError.message.includes("auth")) {
+          return {
+            totalEarnings,
+            overtimeEarnings,
+            regularHours,
+            overtimeHours,
+            totalBreakTime
+          };
+        }
+      }
+    
       const { error } = await supabase
         .from("sessions")
         .update({
@@ -129,12 +173,15 @@ export function useSessionManagement({
       
       if (error) {
         console.error("Error updating session:", error);
-        toast({
-          variant: "destructive",
-          title: "Error Stopping Timer",
-          description: error.message || "There was an error stopping the timer."
-        });
-        return false;
+        
+        // Return the earnings anyway so the user can see them
+        return {
+          totalEarnings,
+          overtimeEarnings,
+          regularHours,
+          overtimeHours,
+          totalBreakTime
+        };
       }
       
       // Create overtime period if applicable
@@ -171,7 +218,15 @@ export function useSessionManagement({
       };
     } catch (error) {
       console.error("Exception updating session:", error);
-      return false;
+      
+      // Return the earnings calculation even if saving to server failed
+      return {
+        totalEarnings,
+        overtimeEarnings,
+        regularHours,
+        overtimeHours,
+        totalBreakTime
+      };
     }
   };
 

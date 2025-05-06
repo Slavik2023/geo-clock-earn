@@ -20,6 +20,8 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
   const [locationDetails, setLocationDetails] = useState<LocationDetails | null>(null);
   const [localTimerActive, setLocalTimerActive] = useState(false);
   const [errorOccurred, setErrorOccurred] = useState(false);
+  const [retryAttempts, setRetryAttempts] = useState(0);
+  const MAX_RETRY_ATTEMPTS = 3;
   
   // Auto-detect location on initial load
   useEffect(() => {
@@ -89,6 +91,40 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
     currentSessionId
   });
 
+  // Retry logic for failed session creation
+  useEffect(() => {
+    let retryTimeout: NodeJS.Timeout;
+    
+    if (errorOccurred && isTracking && user?.id && retryAttempts < MAX_RETRY_ATTEMPTS) {
+      console.log(`Retrying session creation, attempt ${retryAttempts + 1}/${MAX_RETRY_ATTEMPTS}`);
+      
+      retryTimeout = setTimeout(async () => {
+        try {
+          if (!startTime) return;
+          
+          const sessionId = await createSession(startTime);
+          if (sessionId) {
+            console.log("Retry successful, session created with ID:", sessionId);
+            saveSessionId(sessionId);
+            setErrorOccurred(false);
+            setRetryAttempts(0);
+            toast.success("Connected to server and saved session");
+          } else {
+            console.error("Retry failed, no session ID returned");
+            setRetryAttempts(prev => prev + 1);
+          }
+        } catch (error) {
+          console.error("Error during retry:", error);
+          setRetryAttempts(prev => prev + 1);
+        }
+      }, 15000 * (retryAttempts + 1)); // Increasing backoff: 15s, 30s, 45s
+    }
+    
+    return () => {
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
+  }, [errorOccurred, isTracking, retryAttempts, user?.id, startTime]);
+
   const handleLocationVerified = (verified: boolean, details?: any) => {
     if (verified && details) {
       setLocationDetails(details);
@@ -97,7 +133,6 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
 
   const handleToggleTimer = async () => {
     setIsLoading(true);
-    setErrorOccurred(false);
 
     try {
       if (!isTracking) {
@@ -118,6 +153,8 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
             if (sessionId) {
               console.log("Session created with ID:", sessionId);
               saveSessionId(sessionId);
+              setErrorOccurred(false);
+              setRetryAttempts(0);
             } else {
               console.error("Failed to create session, no ID returned");
               setErrorOccurred(true);
@@ -164,10 +201,22 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
           
           // Calculate earnings based on local timer
           const durationMs = now.getTime() - (startTime?.getTime() || now.getTime());
-          const durationHours = durationMs / (1000 * 60 * 60);
-          const earnings = durationHours * hourlyRate;
+          const netDurationMs = durationMs - (totalBreakTime * 60 * 1000);
+          const durationHours = netDurationMs / (1000 * 60 * 60);
           
-          toast.success(`Timer stopped. Approximate earnings: $${earnings.toFixed(2)}`);
+          let regularHours = durationHours;
+          let overtimeHours = 0;
+          
+          if (durationHours > overtimeThreshold) {
+            regularHours = overtimeThreshold;
+            overtimeHours = durationHours - overtimeThreshold;
+          }
+          
+          const regularEarnings = regularHours * hourlyRate;
+          const overtimeEarnings = overtimeHours * overtimeRate;
+          const totalEarnings = regularEarnings + overtimeEarnings;
+          
+          toast.success(`Timer stopped. Approximate earnings: $${totalEarnings.toFixed(2)}`);
         }
         
         // Reset state
@@ -175,6 +224,8 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
         setCurrentSessionId(null);
         setIsTracking(false);
         setLocalTimerActive(false);
+        setErrorOccurred(false);
+        setRetryAttempts(0);
         clearTimerStorage();
       }
     } catch (error) {
@@ -193,6 +244,7 @@ export const useTimeTracking = ({ isLocationVerified }: UseTimeTrackingProps) =>
     overtimeRate,
     overtimeThreshold,
     locationDetails,
+    errorOccurred,
     handleLocationVerified,
     handleToggleTimer,
     lunchBreakActive,

@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDistanceStrict } from "date-fns";
 import { useState, useEffect } from "react";
+import { AlertCircle } from "lucide-react";
 
 interface EarningsCardProps {
   hourlyRate: number;
@@ -10,6 +11,7 @@ interface EarningsCardProps {
   isActive?: boolean;
   overtimeThresholdHours?: number;
   totalBreakTime?: number; // in minutes
+  hasError?: boolean;
 }
 
 export function EarningsCard({ 
@@ -18,7 +20,8 @@ export function EarningsCard({
   startTime, 
   isActive = false,
   overtimeThresholdHours = 8,
-  totalBreakTime = 0
+  totalBreakTime = 0,
+  hasError = false
 }: EarningsCardProps) {
   const [earnings, setEarnings] = useState({ total: 0, regular: 0, overtime: 0 });
   const [duration, setDuration] = useState({ hours: 0, formatted: "0h 0m", net: "0h 0m" });
@@ -28,8 +31,6 @@ export function EarningsCard({
   // Update calculations every second when timer is active
   useEffect(() => {
     if (!isActive) {
-      setEarnings({ total: 0, regular: 0, overtime: 0 });
-      setDuration({ hours: 0, formatted: "0h 0m", net: "0h 0m" });
       return;
     }
     
@@ -90,7 +91,15 @@ export function EarningsCard({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Current Earnings</CardTitle>
+        <CardTitle className="text-lg flex items-center gap-2">
+          Current Earnings
+          {hasError && isActive && (
+            <span className="text-amber-500 text-xs flex items-center gap-1">
+              <AlertCircle size={14} />
+              Local only
+            </span>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col">
@@ -154,6 +163,17 @@ export function EarningsCard({
                     <span className="text-orange-500">${earnings.overtime.toFixed(2)}</span>
                   </div>
                 )}
+              </div>
+            )}
+            
+            {hasError && isActive && (
+              <div className="mt-3 pt-3 border-t">
+                <div className="text-amber-500 text-xs flex items-center gap-1">
+                  <AlertCircle size={14} />
+                  <span>
+                    Session not saved to server. Earnings will be estimated locally until connection is restored.
+                  </span>
+                </div>
               </div>
             )}
           </div>
