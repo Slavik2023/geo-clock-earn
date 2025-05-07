@@ -12,7 +12,9 @@ export function useUserManagementQueries(
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // First get user settings data
+      console.log("Fetching all users from user_settings table");
+      
+      // First get user settings data - use asterisk to get all columns
       const { data: userSettings, error: userSettingsError } = await supabase
         .from('user_settings')
         .select('*');
@@ -21,6 +23,8 @@ export function useUserManagementQueries(
         console.error('Supabase error fetching user settings:', userSettingsError);
         throw userSettingsError;
       }
+
+      console.log("Raw user settings data:", userSettings);
       
       // Map database fields to UserInfo format
       const mappedUsers: UserInfo[] = (userSettings || []).map(userSetting => {
@@ -43,6 +47,8 @@ export function useUserManagementQueries(
           isBlocked: userSetting.role === 'blocked'
         };
       });
+
+      console.log("Mapped users for display:", mappedUsers);
       
       // If this is in development mode and no users, add mock data
       if (mappedUsers.length === 0 && process.env.NODE_ENV === 'development') {
