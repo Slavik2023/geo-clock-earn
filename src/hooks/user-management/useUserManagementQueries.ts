@@ -17,6 +17,7 @@ export function useUserManagementQueries(
         .select('*');
       
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
       
@@ -32,10 +33,46 @@ export function useUserManagementQueries(
         isBlocked: userSetting.role === 'blocked'
       }));
       
+      // Add some mock data if in development and no real users are returned
+      if (mappedUsers.length === 0 && process.env.NODE_ENV === 'development') {
+        console.log('Adding mock data for development');
+        mappedUsers.push(
+          {
+            id: '1',
+            name: 'Demo Admin',
+            email: 'admin@example.com',
+            createdAt: new Date().toISOString(),
+            isAdmin: true,
+            role: 'admin',
+            hourlyRate: 50,
+            isBlocked: false
+          },
+          {
+            id: '2',
+            name: 'Demo User',
+            email: 'user@example.com',
+            createdAt: new Date().toISOString(),
+            isAdmin: false,
+            role: 'user',
+            hourlyRate: 25,
+            isBlocked: false
+          }
+        );
+      }
+      
       setUsers(mappedUsers);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
+      
+      // Provide more detailed error message based on the error type
+      if (error.message?.includes('Failed to fetch')) {
+        toast.error('Network error: Unable to connect to the database. Please check your internet connection.');
+      } else if (error.code === 'PGRST301') {
+        toast.error('Authentication error: Please log in again.');
+      } else {
+        toast.error('Failed to load users: ' + (error.message || 'Unknown error'));
+      }
+      
       // Set users to empty array to prevent endless loading
       setUsers([]);
     } finally {
