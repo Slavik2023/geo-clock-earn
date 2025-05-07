@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useAuth } from "@/App";
 import { UserInfo, UserFormData } from "@/components/admin/types";
 import { useUserManagementState } from "./useUserManagementState";
@@ -32,7 +32,7 @@ export function useUserManagement() {
   } = useUserManagementState();
   
   // Get queries
-  const { fetchUsers } = useUserManagementQueries(setUsers, setIsLoading);
+  const { fetchUsers: fetchUsersQuery } = useUserManagementQueries(setUsers, setIsLoading);
   
   // Get mutations
   const { 
@@ -40,7 +40,15 @@ export function useUserManagement() {
     deleteUser, 
     toggleAdminStatus, 
     toggleBlockUser 
-  } = useUserManagementActions(fetchUsers, setIsLoading);
+  } = useUserManagementActions(fetchUsersQuery, setIsLoading);
+
+  // Wrap fetchUsers in useCallback to prevent infinite loop
+  const fetchUsers = useCallback(() => {
+    if (user) {
+      return fetchUsersQuery();
+    }
+    return Promise.resolve();
+  }, [user, fetchUsersQuery]);
 
   // Fetch users on initial load
   useEffect(() => {
@@ -50,16 +58,16 @@ export function useUserManagement() {
   }, [user, fetchUsers]);
 
   // Helper function to open edit dialog
-  const openEditUserDialog = (user: UserInfo) => {
+  const openEditUserDialog = useCallback((user: UserInfo) => {
     setUserToEdit(user);
     setShowEditDialog(true);
     // Also set these for backward compatibility
     setSelectedUser(user);
     setEditDialogOpen(true);
-  };
+  }, [setUserToEdit, setShowEditDialog, setSelectedUser, setEditDialogOpen]);
 
   // Helper function to handle user edit
-  const handleEditUser = async (formData: UserFormData) => {
+  const handleEditUser = useCallback(async (formData: UserFormData) => {
     if (!userToEdit) return false;
     const success = await updateUser(userToEdit.id, formData);
     if (success) {
@@ -68,17 +76,17 @@ export function useUserManagement() {
       setUserToEdit(null);
     }
     return success;
-  };
+  }, [userToEdit, updateUser, setShowEditDialog, setEditDialogOpen, setUserToEdit]);
 
   // Helper function to confirm delete
-  const confirmDeleteUser = (userId: string) => {
+  const confirmDeleteUser = useCallback((userId: string) => {
     setUserToDelete(userId);
     setShowDeleteDialog(true);
     setDeleteDialogOpen(true);
-  };
+  }, [setUserToDelete, setShowDeleteDialog, setDeleteDialogOpen]);
 
   // Helper function to handle delete
-  const handleDeleteUser = async () => {
+  const handleDeleteUser = useCallback(async () => {
     if (!userToDelete) return false;
     const result = await deleteUser(userToDelete);
     if (result) {
@@ -87,7 +95,7 @@ export function useUserManagement() {
       setUserToDelete(null);
     }
     return result;
-  };
+  }, [userToDelete, deleteUser, setShowDeleteDialog, setDeleteDialogOpen, setUserToDelete]);
 
   return {
     users,

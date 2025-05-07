@@ -16,7 +16,9 @@ export function useUserManagementQueries(
         .from('user_settings')
         .select('*');
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
       // Map database fields to UserInfo format
       const mappedUsers: UserInfo[] = (data || []).map(userSetting => ({
@@ -34,6 +36,8 @@ export function useUserManagementQueries(
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to load users');
+      // Set users to empty array to prevent endless loading
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }

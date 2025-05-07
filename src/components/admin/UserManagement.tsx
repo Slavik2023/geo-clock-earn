@@ -5,6 +5,7 @@ import { useUserManagement } from "@/hooks/useUserManagement";
 import { UserList } from "./UserList";
 import { DeleteUserDialog } from "./dialogs/DeleteUserDialog";
 import { EditUserDialog } from "./dialogs/EditUserDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function UserManagement() {
   const {
@@ -42,7 +43,11 @@ export function UserManagement() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-4">Loading...</div>
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
       ) : (
         <UserList 
           users={users}
