@@ -77,30 +77,32 @@ export function HistoryPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">Work History</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Work History</h1>
+        <ExportActions sessions={sessions} isLoading={isLoading} />
+      </div>
       
       <OfflineAlert offlineSessionsUsed={offlineSessionsUsed} />
       
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
-          <HistoryTabs 
-            activeTab={activeTab} 
-            onTabChange={handleTabChange} 
-            sessions={sessions}
-            isLoading={isLoading}
-            error={error}
-          />
-          <ExportActions sessions={sessions} isLoading={isLoading} />
-        </div>
+      <div className="bg-card rounded-lg border shadow-sm p-6">
+        <HistoryTabs 
+          activeTab={activeTab} 
+          onTabChange={handleTabChange} 
+          sessions={sessions}
+          isLoading={isLoading}
+          error={error}
+        />
         
         {activeTab === "range" && (
-          <DateRangeSelector 
-            startDate={startDate}
-            endDate={endDate}
-            onStartDateChange={setStartDate}
-            onEndDateChange={setEndDate}
-          />
+          <div className="mt-4">
+            <DateRangeSelector 
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+            />
+          </div>
         )}
         
         <div className="mt-6">

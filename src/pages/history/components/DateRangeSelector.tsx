@@ -5,6 +5,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { format, subDays } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface DateRangeSelectorProps {
   startDate: Date;
@@ -30,13 +31,38 @@ export function DateRangeSelector({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2 justify-between">
-        <h2 className="text-lg font-medium">Date Range</h2>
+      <div className="flex flex-wrap items-center gap-3 justify-between">
+        <div className="space-x-2 flex flex-wrap">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handleQuickFilter(7)}
+            className="bg-background hover:bg-muted"
+          >
+            Last 7 Days
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => handleQuickFilter(30)}
+            className="bg-background hover:bg-muted"
+          >
+            Last 30 Days
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => handleQuickFilter(90)}
+            className="bg-background hover:bg-muted"
+          >
+            Last 90 Days
+          </Button>
+        </div>
         <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-background"
             >
               <CalendarIcon className="h-4 w-4" />
               <span>
@@ -45,58 +71,36 @@ export function DateRangeSelector({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              initialFocus
-              mode="single"
-              selected={startDate}
-              onSelect={(date) => {
-                if (date) {
-                  onStartDateChange(date);
-                  setCalendarOpen(false);
-                }
-              }}
-              numberOfMonths={1}
-              className="pointer-events-auto"
-            />
-            <Calendar
-              initialFocus
-              mode="single"
-              selected={endDate}
-              onSelect={(date) => {
-                if (date) {
-                  onEndDateChange(date);
-                  setCalendarOpen(false);
-                }
-              }}
-              numberOfMonths={1}
-              className="pointer-events-auto"
-            />
+            <div className="flex flex-col sm:flex-row gap-2 p-2">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Start Date</p>
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      onStartDateChange(date);
+                    }
+                  }}
+                  className={cn("rounded border p-3 pointer-events-auto")}
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">End Date</p>
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      onEndDateChange(date);
+                    }
+                  }}
+                  className={cn("rounded border p-3 pointer-events-auto")}
+                />
+              </div>
+            </div>
           </PopoverContent>
         </Popover>
-      </div>
-      
-      <div className="flex space-x-2 overflow-x-auto pb-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => handleQuickFilter(7)}
-        >
-          Last 7 Days
-        </Button>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => handleQuickFilter(30)}
-        >
-          Last 30 Days
-        </Button>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => handleQuickFilter(90)}
-        >
-          Last 90 Days
-        </Button>
       </div>
     </div>
   );

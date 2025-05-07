@@ -21,8 +21,8 @@ export function HistoryTabs({
   error = null
 }: HistoryTabsProps) {
   return (
-    <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-4">
-      <TabsList>
+    <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
+      <TabsList className="grid w-full grid-cols-2 mb-6">
         <TabsTrigger value="all" className="flex items-center gap-2">
           <ClipboardListIcon className="h-4 w-4" />
           All Sessions
@@ -33,7 +33,7 @@ export function HistoryTabs({
         </TabsTrigger>
       </TabsList>
       
-      <TabsContent value="all" className="space-y-4">
+      <TabsContent value="all" className="space-y-4 mt-2">
         {sessions && sessions.length > 0 ? (
           <SessionsList 
             sessions={sessions} 
@@ -43,7 +43,7 @@ export function HistoryTabs({
         ) : null}
       </TabsContent>
       
-      <TabsContent value="range" className="space-y-4">
+      <TabsContent value="range" className="space-y-4 mt-2">
         {sessions && sessions.length > 0 ? (
           <SessionsList 
             sessions={sessions} 
