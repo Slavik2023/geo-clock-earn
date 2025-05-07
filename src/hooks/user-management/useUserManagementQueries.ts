@@ -22,22 +22,29 @@ export function useUserManagementQueries(
         throw userSettingsError;
       }
       
-      // Get emails from auth.users through a server function if possible
-      // For now, we have to work with what we have and create a mapping
-      
       // Map database fields to UserInfo format
-      const mappedUsers: UserInfo[] = (userSettings || []).map(userSetting => ({
-        id: userSetting.user_id,
-        name: userSetting.name || 'Unnamed User',
-        email: `user_${userSetting.user_id.substring(0, 6)}@example.com`, // Placeholder email
-        createdAt: userSetting.updated_at || new Date().toISOString(),
-        isAdmin: userSetting.is_admin || false,
-        role: userSetting.role as UserRoleType,
-        hourlyRate: userSetting.hourly_rate || 0,
-        isBlocked: userSetting.role === 'blocked'
-      }));
+      const mappedUsers: UserInfo[] = (userSettings || []).map(userSetting => {
+        // Check if the user should be made a super admin (specifically for slavikifam@gmail.com)
+        const isSpecialUser = userSetting.name?.toLowerCase().includes('slavikifam') || 
+                              userSetting.email === 'slavikifam@gmail.com';
+        
+        // If it's the special user, make them a super admin
+        const role = isSpecialUser ? 'super_admin' as UserRoleType : userSetting.role as UserRoleType;
+        const isAdmin = isSpecialUser ? true : userSetting.is_admin || false;
+        
+        return {
+          id: userSetting.user_id,
+          name: userSetting.name || 'Unnamed User',
+          email: userSetting.email || `user_${userSetting.user_id.substring(0, 6)}@example.com`, 
+          createdAt: userSetting.updated_at || new Date().toISOString(),
+          isAdmin: isAdmin,
+          role: role,
+          hourlyRate: userSetting.hourly_rate || 0,
+          isBlocked: userSetting.role === 'blocked'
+        };
+      });
       
-      // Add some mock data if in development and no real users are returned
+      // If this is in development mode and no users, add mock data
       if (mappedUsers.length === 0 && process.env.NODE_ENV === 'development') {
         console.log('Adding mock data for development');
         mappedUsers.push(
@@ -72,6 +79,31 @@ export function useUserManagementQueries(
             isBlocked: false
           }
         );
+      }
+      
+      // Special case: Ensure slavikifam@gmail.com is a super admin
+      const specialUserEmail = 'slavikifam@gmail.com';
+      const specialUserExists = mappedUsers.find(user => user.email === specialUserEmail);
+      
+      if (specialUserExists) {
+        // Update the user's role to super_admin if found
+        specialUserExists.role = 'super_admin';
+        specialUserExists.isAdmin = true;
+        
+        // Also update in the database
+        const { error } = await supabase
+          .from('user_settings')
+          .update({ 
+            role: 'super_admin',
+            is_admin: true 
+          })
+          .eq('user_id', specialUserExists.id);
+          
+        if (error) {
+          console.error('Error updating user role:', error);
+        } else {
+          console.log('Successfully updated user role for', specialUserEmail);
+        }
       }
       
       setUsers(mappedUsers);
