@@ -12,20 +12,24 @@ export function useUserManagementQueries(
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // First get user settings data
+      const { data: userSettings, error: userSettingsError } = await supabase
         .from('user_settings')
         .select('*');
       
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      if (userSettingsError) {
+        console.error('Supabase error fetching user settings:', userSettingsError);
+        throw userSettingsError;
       }
       
+      // Get emails from auth.users through a server function if possible
+      // For now, we have to work with what we have and create a mapping
+      
       // Map database fields to UserInfo format
-      const mappedUsers: UserInfo[] = (data || []).map(userSetting => ({
+      const mappedUsers: UserInfo[] = (userSettings || []).map(userSetting => ({
         id: userSetting.user_id,
         name: userSetting.name || 'Unnamed User',
-        email: '', // We'll need to get this from a separate query or store it in user_settings
+        email: `user_${userSetting.user_id.substring(0, 6)}@example.com`, // Placeholder email
         createdAt: userSetting.updated_at || new Date().toISOString(),
         isAdmin: userSetting.is_admin || false,
         role: userSetting.role as UserRoleType,
@@ -55,6 +59,16 @@ export function useUserManagementQueries(
             isAdmin: false,
             role: 'user',
             hourlyRate: 25,
+            isBlocked: false
+          },
+          {
+            id: '3',
+            name: 'Demo Super Admin',
+            email: 'superadmin@example.com',
+            createdAt: new Date().toISOString(),
+            isAdmin: true,
+            role: 'super_admin',
+            hourlyRate: 75,
             isBlocked: false
           }
         );

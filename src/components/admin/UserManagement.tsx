@@ -6,9 +6,12 @@ import { UserList } from "./UserList";
 import { DeleteUserDialog } from "./dialogs/DeleteUserDialog";
 import { EditUserDialog } from "./dialogs/EditUserDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, UserPlus } from "lucide-react";
+import { useAuth } from "@/App";
+import { toast } from "sonner";
 
 export function UserManagement() {
+  const { user } = useAuth();
   const {
     users,
     isLoading,
@@ -31,26 +34,44 @@ export function UserManagement() {
   // Reset error state on refresh
   const handleRefresh = () => {
     setHasError(false);
-    fetchUsers().catch(() => setHasError(true));
+    console.log("Refreshing users data...");
+    fetchUsers().catch(() => {
+      setHasError(true);
+      console.error("Failed to fetch users on refresh");
+    });
   };
 
   useEffect(() => {
-    fetchUsers().catch(() => setHasError(true));
-  }, [fetchUsers]);
+    console.log("UserManagement component mounted, current user ID:", user?.id);
+    fetchUsers().catch((e) => {
+      console.error("Error in initial users fetch:", e);
+      setHasError(true);
+    });
+  }, [fetchUsers, user]);
+
+  // Log users data for debugging
+  useEffect(() => {
+    console.log("Current users data:", users);
+    if (users.length === 0 && !isLoading) {
+      console.log("No users found. This could be due to permissions or data issues.");
+    }
+  }, [users, isLoading]);
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Team Users</h2>
-        <Button 
-          onClick={handleRefresh} 
-          variant="outline" 
-          disabled={isLoading}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleRefresh} 
+            variant="outline" 
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -77,6 +98,9 @@ export function UserManagement() {
       ) : users.length === 0 ? (
         <div className="text-center py-8 border rounded-md">
           <p className="text-muted-foreground">No users found</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            This could be due to permission settings or no users exist in the system yet.
+          </p>
           <Button onClick={handleRefresh} variant="link" size="sm">
             Refresh
           </Button>
