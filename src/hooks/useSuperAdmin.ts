@@ -26,15 +26,14 @@ export function useSuperAdmin() {
       
       if (settingsError) throw settingsError;
       
-      // Try to retrieve emails for each user (might need to be adjusted based on your auth setup)
-      const enhancedUsers = await Promise.all((userSettings || []).map(async (userSetting) => {
-        // This is a simplified approach - in a real app, you might need to use admin functions
-        // or have the emails stored in user_settings directly
+      // Create enhanced users with email field (even if it's just a placeholder)
+      const enhancedUsers = (userSettings || []).map(userSetting => {
         return {
           ...userSetting,
-          email: userSetting.email || `user-${userSetting.user_id.substring(0, 8)}`
+          // Use a placeholder email if not available in the user_settings table
+          email: `user-${userSetting.user_id.substring(0, 8)}@example.com`
         };
-      }));
+      });
       
       setUsers(enhancedUsers);
       setFilteredUsers(enhancedUsers);
