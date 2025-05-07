@@ -30,10 +30,12 @@ export function UserManagement() {
   } = useUserManagement();
 
   const [hasError, setHasError] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
 
   // Reset error state on refresh
   const handleRefresh = () => {
     setHasError(false);
+    setLastRefresh(Date.now());
     console.log("Refreshing users data...");
     fetchUsers().catch(() => {
       setHasError(true);
@@ -41,13 +43,26 @@ export function UserManagement() {
     });
   };
 
+  // Set up auto-refresh every 30 seconds
+  useEffect(() => {
+    const autoRefreshInterval = setInterval(() => {
+      console.log("Auto-refreshing users data...");
+      fetchUsers().catch(e => {
+        console.log("Auto-refresh error:", e);
+        // Don't set hasError on auto-refresh to avoid UI disruption
+      });
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(autoRefreshInterval);
+  }, [fetchUsers]);
+
   useEffect(() => {
     console.log("UserManagement component mounted, current user ID:", user?.id);
     fetchUsers().catch((e) => {
       console.error("Error in initial users fetch:", e);
       setHasError(true);
     });
-  }, [fetchUsers, user]);
+  }, [fetchUsers, user, lastRefresh]);
 
   // Log users data for debugging
   useEffect(() => {
@@ -60,7 +75,7 @@ export function UserManagement() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Team Users</h2>
+        <h2 className="text-xl font-semibold">Пользователи команды</h2>
         <div className="flex gap-2">
           <Button 
             onClick={handleRefresh} 
@@ -69,7 +84,7 @@ export function UserManagement() {
             className="flex items-center gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
+            Обновить
           </Button>
         </div>
       </div>
@@ -84,7 +99,7 @@ export function UserManagement() {
         <div className="rounded-md border border-red-200 p-4 bg-red-50">
           <div className="flex items-center gap-2 text-red-600">
             <AlertCircle className="h-5 w-5" />
-            <p>Failed to load users. Please check your connection and try again.</p>
+            <p>Ошибка загрузки пользователей. Проверьте подключение и попробуйте снова.</p>
           </div>
           <Button 
             onClick={handleRefresh}
@@ -92,17 +107,17 @@ export function UserManagement() {
             className="mt-2"
             size="sm"
           >
-            Try Again
+            Попробовать снова
           </Button>
         </div>
       ) : users.length === 0 ? (
         <div className="text-center py-8 border rounded-md">
-          <p className="text-muted-foreground">No users found</p>
+          <p className="text-muted-foreground">Пользователи не найдены</p>
           <p className="text-sm text-muted-foreground mt-1">
-            This could be due to permission settings or no users exist in the system yet.
+            Это может быть связано с настройками разрешений или отсутствием пользователей в системе.
           </p>
           <Button onClick={handleRefresh} variant="link" size="sm">
-            Refresh
+            Обновить
           </Button>
         </div>
       ) : (

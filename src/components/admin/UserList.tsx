@@ -52,19 +52,19 @@ export function UserList({
   const formatRoleName = (role: string) => {
     switch (role) {
       case 'super_admin':
-        return "Super Admin";
+        return "Супер-администратор";
       case 'admin':
-        return "Administrator";
+        return "Администратор";
       case 'manager':
-        return "Manager";
+        return "Менеджер";
       case 'worker':
-        return "Worker";
+        return "Сотрудник";
       case 'user':
-        return "User";
+        return "Пользователь";
       case 'blocked':
-        return "Blocked";
+        return "Заблокирован";
       case 'deleted':
-        return "Deleted";
+        return "Удален";
       default:
         return role;
     }
@@ -75,31 +75,31 @@ export function UserList({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name / Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Hourly Rate</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>Имя / Email</TableHead>
+            <TableHead>Роль</TableHead>
+            <TableHead>Ставка</TableHead>
+            <TableHead>Статус</TableHead>
+            <TableHead className="text-right">Действия</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
             <TableRow>
               <TableCell colSpan={5} className="text-center py-4">
-                Loading...
+                Загрузка...
               </TableCell>
             </TableRow>
           ) : users.length === 0 ? (
             <TableRow>
               <TableCell colSpan={5} className="text-center py-4">
-                No users found
+                Пользователи не найдены
               </TableCell>
             </TableRow>
           ) : (
             users.map((user) => (
               <TableRow key={user.id}>
                 <TableCell>
-                  <div className="font-medium">{user.name || "No name"}</div>
+                  <div className="font-medium">{user.name || "Без имени"}</div>
                   <div className="text-sm text-muted-foreground">{user.email}</div>
                 </TableCell>
                 <TableCell>
@@ -108,15 +108,15 @@ export function UserList({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  ${user.hourlyRate}/hr
+                  ${user.hourlyRate}/час
                 </TableCell>
                 <TableCell>
                   {user.role === 'blocked' ? (
-                    <Badge variant="destructive">Blocked</Badge>
+                    <Badge variant="destructive">Заблокирован</Badge>
                   ) : user.role === 'deleted' ? (
-                    <Badge variant="destructive">Deleted</Badge>
+                    <Badge variant="destructive">Удален</Badge>
                   ) : (
-                    <Badge variant="outline" className="bg-green-50">Active</Badge>
+                    <Badge variant="outline" className="bg-green-50">Активен</Badge>
                   )}
                 </TableCell>
                 <TableCell className="text-right space-x-2">
@@ -126,7 +126,7 @@ export function UserList({
                     onClick={() => onEdit(user)}
                     disabled={user.role === 'deleted'}
                   >
-                    Edit
+                    Изменить
                   </Button>
                   {user.role !== 'super_admin' && user.role !== 'deleted' && (
                     <Button
@@ -134,7 +134,7 @@ export function UserList({
                       size="sm"
                       onClick={() => onToggleBlock(user.id, user.role === 'blocked')}
                     >
-                      {user.role === 'blocked' ? "Unblock" : "Block"}
+                      {user.role === 'blocked' ? "Разблокировать" : "Блокировать"}
                     </Button>
                   )}
                   {user.role !== 'super_admin' && user.role !== 'deleted' && (
@@ -143,7 +143,7 @@ export function UserList({
                       size="sm"
                       onClick={() => onToggleAdmin(user.id, user.isAdmin)}
                     >
-                      {user.isAdmin ? "Remove Admin" : "Make Admin"}
+                      {user.isAdmin ? "Убрать админа" : "Сделать админом"}
                     </Button>
                   )}
                   {user.role !== 'super_admin' && user.role !== 'deleted' && (
@@ -152,7 +152,7 @@ export function UserList({
                       size="sm"
                       onClick={() => onDelete(user.id)}
                     >
-                      Delete
+                      Удалить
                     </Button>
                   )}
                 </TableCell>

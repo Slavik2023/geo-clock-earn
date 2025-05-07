@@ -26,8 +26,48 @@ export function useUserManagementQueries(
 
       console.log("Raw user settings data:", userSettings);
       
-      // We can't directly query auth.users through the client library
-      // Instead, we'll use the data we have from user_settings
+      if (!userSettings || userSettings.length === 0) {
+        console.log("No user settings found, checking auth.users directly");
+        
+        // As a fallback, try to get user IDs from sessions table
+        const { data: sessionUsers } = await supabase
+          .from('sessions')
+          .select('user_id')
+          .order('start_time', { ascending: false });
+          
+        if (sessionUsers && sessionUsers.length > 0) {
+          // Create placeholder user settings for users with sessions
+          const uniqueUserIds = [...new Set(sessionUsers.map(session => session.user_id))];
+          console.log("Found users in sessions:", uniqueUserIds);
+          
+          // Create placeholder user settings
+          const placeholderUsers = uniqueUserIds.map(userId => ({
+            id: userId,
+            user_id: userId,
+            name: `User ${userId.substring(0, 6)}`,
+            email: `user_${userId.substring(0, 6)}@example.com`,
+            hourly_rate: 25,
+            role: 'user' as UserRoleType,
+            is_admin: false,
+            updated_at: new Date().toISOString()
+          }));
+          
+          setUsers(
+            placeholderUsers.map(user => ({
+              id: user.user_id,
+              name: user.name,
+              email: user.email || `user_${user.user_id.substring(0, 6)}@example.com`,
+              createdAt: user.updated_at,
+              isAdmin: user.is_admin || false,
+              role: user.role as UserRoleType,
+              hourlyRate: user.hourly_rate || 25,
+              isBlocked: user.role === 'blocked'
+            }))
+          );
+          setIsLoading(false);
+          return;
+        }
+      }
       
       // Map database fields to UserInfo format
       const mappedUsers: UserInfo[] = (userSettings || []).map(userSetting => {
@@ -80,16 +120,6 @@ export function useUserManagementQueries(
             isAdmin: false,
             role: 'user',
             hourlyRate: 25,
-            isBlocked: false
-          },
-          {
-            id: '3',
-            name: 'Demo Super Admin',
-            email: 'superadmin@example.com',
-            createdAt: new Date().toISOString(),
-            isAdmin: true,
-            role: 'super_admin',
-            hourlyRate: 75,
             isBlocked: false
           }
         );
