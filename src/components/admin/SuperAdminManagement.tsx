@@ -1,84 +1,264 @@
 
 import { useState } from "react";
-import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Shield } from "lucide-react";
-import { useAuth } from "@/App";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { 
+  Table, 
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow 
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Search, UserPlus, User, Users, Lock, Unlock, Ban } from "lucide-react";
+import { toast } from "sonner";
 
 export function SuperAdminManagement() {
-  const { user } = useAuth();
-  const { isLoading, setSuperAdminStatus } = useSuperAdmin();
-  const [email, setEmail] = useState("");
-  const [success, setSuccess] = useState(false);
+  const { 
+    users, 
+    isLoading, 
+    searchTerm, 
+    setSearchTerm, 
+    fetchAllUsers,
+    updateUserRole,
+    blockUser,
+    setSuperAdminStatus
+  } = useSuperAdmin();
 
-  const handleSetSuperAdmin = async () => {
-    if (!email) {
-      // Don't proceed if email is empty
+  const [emailInput, setEmailInput] = useState("");
+
+  // Function to format role name for display
+  const formatRoleName = (role: string) => {
+    switch (role) {
+      case 'super_admin':
+        return "Super Admin";
+      case 'admin':
+        return "Administrator";
+      case 'manager':
+        return "Manager";
+      case 'worker':
+        return "Worker";
+      case 'user':
+        return "User";
+      case 'blocked':
+        return "Blocked";
+      case 'deleted':
+        return "Deleted";
+      default:
+        return role;
+    }
+  };
+
+  // Function to get badge variant based on role
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'super_admin':
+        return "default";
+      case 'admin':
+        return "secondary";
+      case 'manager':
+        return "outline";
+      case 'worker':
+        return "outline";
+      case 'blocked':
+        return "destructive";
+      case 'deleted':
+        return "destructive";
+      default:
+        return "outline";
+    }
+  };
+
+  const handleAssignSuperAdmin = async () => {
+    if (!emailInput.trim()) {
+      toast.error("Please enter an email address");
       return;
     }
-    const result = await setSuperAdminStatus(email);
-    setSuccess(result);
-    if (result) {
-      // Clear the email field on success
-      setEmail("");
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(emailInput)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    const success = await setSuperAdminStatus(emailInput);
+    if (success) {
+      setEmailInput("");
+      fetchAllUsers();
+    }
+  };
+
+  const handleToggleTeamFeature = async (userId: string, hasTeamFeature: boolean) => {
+    const role = hasTeamFeature ? 'user' : 'admin';
+    const success = await updateUserRole(userId, role);
+    if (success) {
+      toast.success(`Team feature ${hasTeamFeature ? 'disabled' : 'enabled'} for user`);
+      fetchAllUsers();
+    }
+  };
+
+  const handleToggleBlockUser = async (userId: string, isCurrentlyBlocked: boolean) => {
+    const success = await blockUser(userId, isCurrentlyBlocked);
+    if (success) {
+      toast.success(`User ${isCurrentlyBlocked ? 'unblocked' : 'blocked'} successfully`);
+      fetchAllUsers();
     }
   };
 
   return (
-    <Card className="border-2 border-amber-200">
-      <CardHeader className="bg-amber-50 dark:bg-amber-900/20">
-        <CardTitle className="flex items-center text-amber-700 dark:text-amber-300">
-          <Shield className="mr-2" size={20} />
-          Настройка главного администратора
-        </CardTitle>
-        <CardDescription>
-          Назначьте главного администратора с полным доступом к системе
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-6">
-        <Alert className="mb-4 bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Внимание!</AlertTitle>
-          <AlertDescription>
-            Главный администратор получит полный доступ к системе и всем её функциям.
-            Эти настройки не могут быть изменены другими администраторами.
-          </AlertDescription>
-        </Alert>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Super Administrator Controls</CardTitle>
+          <CardDescription>
+            Manage system users and permissions. These controls are only available to Super Administrators.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-medium mb-2">Assign Super Admin</h3>
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="Enter email address" 
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                />
+                <Button onClick={handleAssignSuperAdmin}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Assign
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                The user will be granted super administrator privileges. Make sure they have registered first.
+              </p>
+            </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-1 block">Email главного администратора</label>
-            <Input
-              type="email"
-              placeholder="email@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <div className="pt-4">
+              <h3 className="text-lg font-medium mb-2">All System Users</h3>
+              <div className="flex items-center gap-2 mb-4">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search users..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={fetchAllUsers} 
+                  disabled={isLoading}
+                >
+                  Refresh
+                </Button>
+              </div>
+
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Team Feature</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-4">
+                          Loading...
+                        </TableCell>
+                      </TableRow>
+                    ) : users.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-4">
+                          No users found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      users.map((user) => (
+                        <TableRow key={user.user_id}>
+                          <TableCell>
+                            <div className="font-medium">{user.name || "No name"}</div>
+                            <div className="text-sm text-muted-foreground">{user.email}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getRoleBadgeVariant(user.role)}>
+                              {formatRoleName(user.role)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {user.role !== 'super_admin' && user.role !== 'deleted' && user.role !== 'blocked' && (
+                              <div className="flex items-center">
+                                <Switch
+                                  checked={user.role === 'admin' || user.role === 'super_admin'}
+                                  onCheckedChange={() => handleToggleTeamFeature(
+                                    user.user_id, 
+                                    user.role === 'admin' || user.role === 'super_admin'
+                                  )}
+                                  disabled={user.role === 'super_admin'}
+                                />
+                                <span className="ml-2">
+                                  {(user.role === 'admin' || user.role === 'super_admin') ? 'Enabled' : 'Disabled'}
+                                </span>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {user.role === 'blocked' ? (
+                              <Badge variant="destructive">Blocked</Badge>
+                            ) : user.role === 'deleted' ? (
+                              <Badge variant="destructive">Deleted</Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-green-50">Active</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {user.role !== 'super_admin' && user.role !== 'deleted' && (
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant={user.role === 'blocked' ? "outline" : "secondary"} 
+                                  size="sm"
+                                  onClick={() => handleToggleBlockUser(user.user_id, user.role === 'blocked')}
+                                >
+                                  {user.role === 'blocked' ? (
+                                    <><Unlock className="h-4 w-4 mr-1" /> Unblock</>
+                                  ) : (
+                                    <><Ban className="h-4 w-4 mr-1" /> Block</>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </div>
-        </div>
-        
-        {success && (
-          <Alert className="mt-4 bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:text-green-300">
-            <AlertTitle>Готово!</AlertTitle>
-            <AlertDescription>
-              Пользователь успешно назначен главным администратором системы.
-            </AlertDescription>
-          </Alert>
-        )}
-      </CardContent>
-      <CardFooter className="flex justify-end border-t pt-4 bg-gray-50 dark:bg-gray-800/50">
-        <Button 
-          variant="default" 
-          className="bg-amber-600 hover:bg-amber-700" 
-          onClick={handleSetSuperAdmin}
-          disabled={isLoading || !email}
-        >
-          {isLoading ? "Настройка..." : "Назначить главным администратором"}
-        </Button>
-      </CardFooter>
-    </Card>
+        </CardContent>
+        <CardFooter>
+          <p className="text-sm text-muted-foreground">
+            With great power comes great responsibility. These actions are logged for security purposes.
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

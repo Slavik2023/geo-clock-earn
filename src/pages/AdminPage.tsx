@@ -92,7 +92,6 @@ export function AdminPage() {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
-          {isSuperAdmin && <TabsTrigger value="system">System</TabsTrigger>}
         </TabsList>
         <TabsContent value="users" className="space-y-4">
           <UserManagement />
@@ -103,21 +102,6 @@ export function AdminPage() {
         <TabsContent value="settings" className="space-y-4">
           <SettingsManagement />
         </TabsContent>
-        {isSuperAdmin && (
-          <TabsContent value="system" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>System Settings</CardTitle>
-                <CardDescription>
-                  These settings are only available to the super administrator
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>System settings will be displayed here.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
       </Tabs>
     </div>
   );

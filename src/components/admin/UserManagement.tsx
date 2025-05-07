@@ -31,7 +31,7 @@ export function UserManagement() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Users</h2>
+        <h2 className="text-xl font-semibold">Team Users</h2>
         <Button 
           onClick={() => fetchUsers()} 
           variant="outline" 

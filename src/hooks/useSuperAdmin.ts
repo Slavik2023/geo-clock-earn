@@ -19,14 +19,25 @@ export function useSuperAdmin() {
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // First get all user settings
+      const { data: userSettings, error: settingsError } = await supabase
         .from('user_settings')
         .select('*');
       
-      if (error) throw error;
+      if (settingsError) throw settingsError;
       
-      setUsers(data || []);
-      setFilteredUsers(data || []);
+      // Try to retrieve emails for each user (might need to be adjusted based on your auth setup)
+      const enhancedUsers = await Promise.all((userSettings || []).map(async (userSetting) => {
+        // This is a simplified approach - in a real app, you might need to use admin functions
+        // or have the emails stored in user_settings directly
+        return {
+          ...userSetting,
+          email: userSetting.email || `user-${userSetting.user_id.substring(0, 8)}`
+        };
+      }));
+      
+      setUsers(enhancedUsers);
+      setFilteredUsers(enhancedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to load users');
@@ -87,7 +98,7 @@ export function useSuperAdmin() {
     
     setIsLoading(true);
     try {
-      // If blocking, set role to 'blocked', otherwise back to 'user'
+      // If unblocking, set role to 'user', otherwise set to 'blocked'
       const role = isBlocked ? 'user' as UserRoleType : 'blocked' as UserRoleType;
       
       const { error } = await supabase
@@ -97,8 +108,14 @@ export function useSuperAdmin() {
       
       if (error) throw error;
       
-      toast.success(`User ${isBlocked ? 'unblocked' : 'blocked'} successfully`);
-      await fetchAllUsers();
+      // Log the action
+      await supabase.from('audit_logs').insert({
+        user_id: user.id,
+        action: isBlocked ? 'unblock_user' : 'block_user',
+        entity_type: 'user_settings',
+        details: { target_user_id: userId, action: isBlocked ? 'unblock' : 'block' }
+      });
+      
       return true;
     } catch (error) {
       console.error('Error blocking/unblocking user:', error);
@@ -109,7 +126,6 @@ export function useSuperAdmin() {
     }
   };
 
-  // Add the setSuperAdminStatus function that's used in the tests
   const setSuperAdminStatus = async (email: string) => {
     if (!user || !isSuperAdmin) return false;
     
@@ -158,6 +174,6 @@ export function useSuperAdmin() {
     fetchAllUsers,
     updateUserRole,
     blockUser,
-    setSuperAdminStatus // Add this function to match tests
+    setSuperAdminStatus
   };
 }
