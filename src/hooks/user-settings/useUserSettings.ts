@@ -82,7 +82,8 @@ export function useUserSettings() {
         setEnableOvertimeCalculation(settingsData.enable_overtime_calculation ?? true);
         // Only set bio if it exists in the data
         if ('bio' in settingsData) {
-          setBio(settingsData.bio || '');
+          // Explicitly cast to string to fix the TypeScript error
+          setBio(String(settingsData.bio || ''));
         } else {
           setBio('');
         }
