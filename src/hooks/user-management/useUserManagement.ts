@@ -53,15 +53,17 @@ export function useUserManagement() {
   const openEditUserDialog = (user: UserInfo) => {
     setUserToEdit(user);
     setShowEditDialog(true);
-    // For compatibility with existing code
-    setSelectedUser(user);
-    setEditDialogOpen(true);
   };
 
   // Helper function to handle user edit
   const handleEditUser = async (formData: UserFormData) => {
     if (!userToEdit) return false;
-    return await updateUser(userToEdit.id, formData);
+    const success = await updateUser(userToEdit.id, formData);
+    if (success) {
+      setShowEditDialog(false);
+      setUserToEdit(null);
+    }
+    return success;
   };
 
   // Helper function to confirm delete
@@ -76,7 +78,6 @@ export function useUserManagement() {
     const result = await deleteUser(userToDelete);
     if (result) {
       setShowDeleteDialog(false);
-      setDeleteDialogOpen(false);
       setUserToDelete(null);
     }
     return result;
