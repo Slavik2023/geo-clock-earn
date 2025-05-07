@@ -75,10 +75,11 @@ export const useTimerStop = ({
           
           // Save local backup since database save failed
           if (startTime) {
+            const earnings = calculateLocalEarnings(startTime, now, totalBreakTime, hourlyRate, overtimeRate, overtimeThreshold);
             saveSessionToLocalStorage({
               startTime,
               endTime: now,
-              earnings: calculateLocalEarnings(startTime, now, totalBreakTime, hourlyRate, overtimeRate, overtimeThreshold),
+              earnings: earnings.totalEarnings,
               address: locationDetails?.address,
               hourlyRate: hourlyRate
             });
@@ -90,10 +91,11 @@ export const useTimerStop = ({
         
         // Save local backup since database save failed
         if (startTime) {
+          const earnings = calculateLocalEarnings(startTime, now, totalBreakTime, hourlyRate, overtimeRate, overtimeThreshold);
           saveSessionToLocalStorage({
             startTime,
             endTime: now,
-            earnings: calculateLocalEarnings(startTime, now, totalBreakTime, hourlyRate, overtimeRate, overtimeThreshold),
+            earnings: earnings.totalEarnings,
             address: locationDetails?.address,
             hourlyRate: hourlyRate
           });

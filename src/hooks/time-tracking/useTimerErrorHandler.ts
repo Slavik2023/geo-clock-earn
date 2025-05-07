@@ -1,39 +1,44 @@
 
 import { toast } from "sonner";
+import { getOfflineSessions } from "@/components/time-tracker/services/sessionService";
+import { WorkSession } from "@/components/time-tracker/WorkSessionCard";
 
-export const useTimerErrorHandler = () => {
-  const handleError = (error: any) => {
-    console.error("Error toggling timer:", error);
+export function useTimerErrorHandler() {
+  const handleSessionLoadError = (error: any): WorkSession[] => {
+    let errorMessage = "Could not load sessions";
     
-    // Check for specific error types
-    if (error?.message?.includes("network") || error?.code === "NETWORK_ERROR") {
-      toast.error("Network connection error. Please check your internet connection and try again.");
-    } else if (error?.code?.includes("PERMISSION_DENIED") || error?.message?.includes("permission")) {
-      toast.error("Permission denied. You don't have access to perform this action.");
-    } else if (error?.message?.includes("recursion") || error?.code === "42P17") {
-      toast.error("Database query error. Please try again or contact support.");
-    } else {
-      toast.error("An error occurred. Please try again.");
-    }
-  };
-
-  const handleSessionLoadError = (error: any) => {
-    console.error("Error loading sessions:", error);
-    
-    // Check for specific error types
-    if (error?.message?.includes("recursion") || error?.code === "42P17") {
-      toast.error("Database query error. The system is having trouble loading your sessions.");
-    } else if (error?.message?.includes("network") || error?.code === "NETWORK_ERROR") {
-      toast.error("Network connection error. Please check your internet connection.");
-    } else {
-      toast.error("Could not load sessions. Using local data if available.");
+    if (error.message?.includes("Failed to fetch")) {
+      errorMessage = "Network error: Check your internet connection";
+    } else if (error.message?.includes("JWT")) {
+      errorMessage = "Authentication error: Please log in again";
+    } else if (error.code === "PGRST301") {
+      errorMessage = "Session expired: Please log in again";
     }
     
-    return [];
+    toast.error(errorMessage);
+    
+    // Return offline sessions as fallback
+    return getOfflineSessions();
+  };
+  
+  const handleError = (error: any, defaultMessage: string = "An error occurred") => {
+    let errorMessage = defaultMessage;
+    
+    if (error.message?.includes("Failed to fetch")) {
+      errorMessage = "Network error: Check your internet connection";
+    } else if (error.message?.includes("JWT")) {
+      errorMessage = "Authentication error: Please log in again";
+    } else if (error.code === "PGRST301") {
+      errorMessage = "Session expired: Please log in again";
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    toast.error(errorMessage);
+    console.error("Handled error:", error);
+    
+    return errorMessage;
   };
 
-  return { 
-    handleError,
-    handleSessionLoadError
-  };
-};
+  return { handleSessionLoadError, handleError };
+}

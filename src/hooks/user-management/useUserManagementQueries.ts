@@ -26,14 +26,8 @@ export function useUserManagementQueries(
 
       console.log("Raw user settings data:", userSettings);
       
-      // Now fetch all auth users to get their real email addresses
-      const { data: authUsers, error: authError } = await supabase
-        .from('auth.users')
-        .select('id, email');
-        
-      if (authError) {
-        console.log('Could not fetch auth users directly. Using alternative method.');
-      }
+      // We can't directly query auth.users through the client library
+      // Instead, we'll use the data we have from user_settings
       
       // Map database fields to UserInfo format
       const mappedUsers: UserInfo[] = (userSettings || []).map(userSetting => {
