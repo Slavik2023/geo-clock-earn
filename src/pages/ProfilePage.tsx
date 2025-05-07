@@ -8,14 +8,17 @@ import { TeamManagement } from "@/components/profile/TeamManagement";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { Button } from "@/components/ui/button";
 import { useSuperAdminProfile } from "@/hooks/user-settings";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, LogOut, Settings, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 export function ProfilePage() {
   const { 
     userRole, 
     isSuperAdmin,
+    isAdmin,
     name,
     setName,
     email,
@@ -35,6 +38,8 @@ export function ProfilePage() {
   
   const { createSuperAdminProfile, isUpdating } = useSuperAdminProfile();
   const [becomingSuperAdmin, setBecomingSuperAdmin] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const navigate = useNavigate();
 
   const handleBecomeSuperAdmin = async () => {
     setBecomingSuperAdmin(true);
@@ -47,14 +52,61 @@ export function ProfilePage() {
       setBecomingSuperAdmin(false);
     }
   };
+  
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await supabase.auth.signOut();
+      toast.success("Logged out successfully");
+      navigate("/auth");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+  
+  const navigateToAdmin = () => {
+    navigate("/admin");
+  };
 
   return (
     <div className="container max-w-5xl py-6 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Account Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings and preferences.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Account Settings</h1>
+          <p className="text-muted-foreground">
+            Manage your account settings and preferences.
+          </p>
+        </div>
+        
+        <div className="flex gap-2 self-end md:self-auto">
+          {(isAdmin || isSuperAdmin) && (
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2" 
+              onClick={navigateToAdmin}
+            >
+              <Settings size={18} />
+              Admin Panel
+            </Button>
+          )}
+          
+          <Button 
+            variant="destructive" 
+            className="flex items-center gap-2"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
+            {isLoggingOut ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <LogOut size={18} />
+            )}
+            Logout
+          </Button>
+        </div>
       </div>
 
       {/* Super Admin Activation Section */}
