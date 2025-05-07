@@ -71,6 +71,11 @@ export function ProfilePage() {
     navigate("/admin");
   };
 
+  // Check if the current user is slavikifam@gmail.com (our special super admin)
+  const isSpecialSuperAdmin = email === 'slavikifam@gmail.com' || 
+                              name?.toLowerCase().includes('slavikifam') || 
+                              name?.includes('slavikifam@gmail.com');
+
   return (
     <div className="container max-w-5xl py-6 space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -109,8 +114,8 @@ export function ProfilePage() {
         </div>
       </div>
 
-      {/* Super Admin Activation Section */}
-      {!isSuperAdmin && (
+      {/* Super Admin Activation Section - Only show for special user */}
+      {!isSuperAdmin && isSpecialSuperAdmin && (
         <Card className="p-4 mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">

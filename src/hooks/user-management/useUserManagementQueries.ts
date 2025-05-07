@@ -26,7 +26,7 @@ export function useUserManagementQueries(
       const mappedUsers: UserInfo[] = (userSettings || []).map(userSetting => {
         // Check if the user should be made a super admin (specifically for slavikifam@gmail.com)
         const isSpecialUser = userSetting.name?.toLowerCase().includes('slavikifam') || 
-                              userSetting.email === 'slavikifam@gmail.com';
+                              userSetting.name?.includes('slavikifam@gmail.com');
         
         // If it's the special user, make them a super admin
         const role = isSpecialUser ? 'super_admin' as UserRoleType : userSetting.role as UserRoleType;
@@ -35,7 +35,7 @@ export function useUserManagementQueries(
         return {
           id: userSetting.user_id,
           name: userSetting.name || 'Unnamed User',
-          email: userSetting.email || `user_${userSetting.user_id.substring(0, 6)}@example.com`, 
+          email: userSetting.name?.includes('@') ? userSetting.name : `user_${userSetting.user_id.substring(0, 6)}@example.com`, 
           createdAt: userSetting.updated_at || new Date().toISOString(),
           isAdmin: isAdmin,
           role: role,
@@ -83,7 +83,10 @@ export function useUserManagementQueries(
       
       // Special case: Ensure slavikifam@gmail.com is a super admin
       const specialUserEmail = 'slavikifam@gmail.com';
-      const specialUserExists = mappedUsers.find(user => user.email === specialUserEmail);
+      const specialUserExists = mappedUsers.find(user => 
+        user.email === specialUserEmail || 
+        user.name?.includes(specialUserEmail)
+      );
       
       if (specialUserExists) {
         // Update the user's role to super_admin if found
