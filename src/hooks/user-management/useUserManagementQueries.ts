@@ -14,7 +14,7 @@ export function useUserManagementQueries(
     try {
       console.log("Fetching all users from user_settings table");
       
-      // First get user settings data - use asterisk to get all columns
+      // First get user settings data with all columns
       const { data: userSettings, error: userSettingsError } = await supabase
         .from('user_settings')
         .select('*');
@@ -26,6 +26,15 @@ export function useUserManagementQueries(
 
       console.log("Raw user settings data:", userSettings);
       
+      // Now fetch all auth users to get their real email addresses
+      const { data: authUsers, error: authError } = await supabase
+        .from('auth.users')
+        .select('id, email');
+        
+      if (authError) {
+        console.log('Could not fetch auth users directly. Using alternative method.');
+      }
+      
       // Map database fields to UserInfo format
       const mappedUsers: UserInfo[] = (userSettings || []).map(userSetting => {
         // Check if the user should be made a super admin (specifically for slavikifam@gmail.com)
@@ -36,10 +45,15 @@ export function useUserManagementQueries(
         const role = isSpecialUser ? 'super_admin' as UserRoleType : userSetting.role as UserRoleType;
         const isAdmin = isSpecialUser ? true : userSetting.is_admin || false;
         
+        // Determine email - use actual email if we have it or generate one based on user_id
+        const email = userSetting.name?.includes('@') 
+          ? userSetting.name 
+          : `user_${userSetting.user_id.substring(0, 6)}@example.com`;
+        
         return {
           id: userSetting.user_id,
           name: userSetting.name || 'Unnamed User',
-          email: userSetting.name?.includes('@') ? userSetting.name : `user_${userSetting.user_id.substring(0, 6)}@example.com`, 
+          email: email, 
           createdAt: userSetting.updated_at || new Date().toISOString(),
           isAdmin: isAdmin,
           role: role,

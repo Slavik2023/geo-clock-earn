@@ -144,6 +144,7 @@ export function saveSessionToLocalStorage(session: {
   endTime?: Date;
   earnings?: number;
   address?: string;
+  hourlyRate?: number;
 }) {
   try {
     const existingSessions = JSON.parse(localStorage.getItem('offlineSessions') || '[]');
@@ -152,7 +153,8 @@ export function saveSessionToLocalStorage(session: {
       startTime: session.startTime.toISOString(),
       endTime: session.endTime ? session.endTime.toISOString() : null,
       id: `local-${Date.now()}`,
-      earnings: session.earnings || 0
+      earnings: session.earnings || 0,
+      hourlyRate: session.hourlyRate || 0
     });
     localStorage.setItem('offlineSessions', JSON.stringify(existingSessions));
     console.log("Session saved to local storage:", session);

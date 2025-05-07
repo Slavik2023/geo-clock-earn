@@ -58,45 +58,65 @@ export const useTimerStop = ({
           toast.success(
             `Timer stopped. Earned: $${totalEarnings.toFixed(2)} ${overtimeEarnings > 0 ? `(including $${overtimeEarnings.toFixed(2)} overtime)` : ""}`
           );
+          
+          // Always save to local storage as backup even when database save succeeds
+          if (startTime) {
+            saveSessionToLocalStorage({
+              startTime,
+              endTime: now,
+              earnings: totalEarnings,
+              address: locationDetails?.address,
+              hourlyRate: hourlyRate
+            });
+          }
         } else {
           console.error("Error completing session, no result returned");
           toast.error("Error completing session, but time has been tracked locally");
+          
+          // Save local backup since database save failed
+          if (startTime) {
+            saveSessionToLocalStorage({
+              startTime,
+              endTime: now,
+              earnings: calculateLocalEarnings(startTime, now, totalBreakTime, hourlyRate, overtimeRate, overtimeThreshold),
+              address: locationDetails?.address,
+              hourlyRate: hourlyRate
+            });
+          }
         }
       } catch (error) {
         console.error("Error stopping timer:", error);
         toast.error("Error saving to server, but time has been tracked locally");
+        
+        // Save local backup since database save failed
+        if (startTime) {
+          saveSessionToLocalStorage({
+            startTime,
+            endTime: now,
+            earnings: calculateLocalEarnings(startTime, now, totalBreakTime, hourlyRate, overtimeRate, overtimeThreshold),
+            address: locationDetails?.address,
+            hourlyRate: hourlyRate
+          });
+        }
       }
     } else {
       console.log("Using local timer only, not updating database");
       
       // Calculate earnings based on local timer
-      const durationMs = now.getTime() - (startTime?.getTime() || now.getTime());
-      const netDurationMs = durationMs - (totalBreakTime * 60 * 1000);
-      const durationHours = netDurationMs / (1000 * 60 * 60);
-      
-      let regularHours = durationHours;
-      let overtimeHours = 0;
-      
-      if (durationHours > overtimeThreshold) {
-        regularHours = overtimeThreshold;
-        overtimeHours = durationHours - overtimeThreshold;
-      }
-      
-      const regularEarnings = regularHours * hourlyRate;
-      const overtimeEarnings = overtimeHours * overtimeRate;
-      const totalEarnings = regularEarnings + overtimeEarnings;
+      const earnings = calculateLocalEarnings(startTime, now, totalBreakTime, hourlyRate, overtimeRate, overtimeThreshold);
       
       // Save the session to localStorage for offline access
       if (startTime) {
         saveSessionToLocalStorage({
           startTime,
           endTime: now,
-          earnings: totalEarnings,
-          address: locationDetails?.address
+          earnings: earnings.totalEarnings,
+          address: locationDetails?.address,
+          hourlyRate: hourlyRate
         });
       }
       
-      toast.success(`Timer stopped. Approximate earnings: $${totalEarnings.toFixed(2)}`);
+      toast.success(`Timer stopped. Approximate earnings: $${earnings.totalEarnings.toFixed(2)}`);
     }
     
     // Reset state
@@ -107,6 +127,36 @@ export const useTimerStop = ({
     setErrorOccurred(false);
     setRetryAttempts(0);
     clearTimerStorage();
+  };
+  
+  // Helper function to calculate earnings locally
+  const calculateLocalEarnings = (
+    startTime: Date | null, 
+    endTime: Date, 
+    breakTimeMinutes: number, 
+    hourlyRate: number, 
+    overtimeRate: number,
+    overtimeThreshold: number
+  ) => {
+    if (!startTime) return { totalEarnings: 0, overtimeEarnings: 0 };
+    
+    const durationMs = endTime.getTime() - startTime.getTime();
+    const netDurationMs = durationMs - (breakTimeMinutes * 60 * 1000);
+    const durationHours = netDurationMs / (1000 * 60 * 60);
+    
+    let regularHours = durationHours;
+    let overtimeHours = 0;
+    
+    if (durationHours > overtimeThreshold) {
+      regularHours = overtimeThreshold;
+      overtimeHours = durationHours - overtimeThreshold;
+    }
+    
+    const regularEarnings = regularHours * hourlyRate;
+    const overtimeEarnings = overtimeHours * overtimeRate;
+    const totalEarnings = regularEarnings + overtimeEarnings;
+    
+    return { totalEarnings, overtimeEarnings };
   };
 
   return { stopTimer };
