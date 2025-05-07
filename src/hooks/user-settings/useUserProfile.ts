@@ -9,6 +9,7 @@ export function useUserProfile() {
   const [overtimeThreshold, setOvertimeThreshold] = useState(8);
   const [enableLocationVerification, setEnableLocationVerification] = useState(true);
   const [enableOvertimeCalculation, setEnableOvertimeCalculation] = useState(true);
+  const [bio, setBio] = useState('');
 
   return {
     name,
@@ -22,6 +23,8 @@ export function useUserProfile() {
     enableLocationVerification,
     setEnableLocationVerification,
     enableOvertimeCalculation,
-    setEnableOvertimeCalculation
+    setEnableOvertimeCalculation,
+    bio,
+    setBio
   };
 }

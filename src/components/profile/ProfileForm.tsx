@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PersonalDetails } from "./PersonalDetails";
@@ -9,6 +10,9 @@ interface ProfileFormProps {
   isLoading: boolean;
   name: string;
   setName: (name: string) => void;
+  email?: string;
+  bio?: string;
+  setBio?: (bio: string) => void;
   hourlyRate: number;
   setHourlyRate: (rate: number) => void;
   overtimeRate: number;
@@ -26,6 +30,9 @@ export function ProfileForm({
   isLoading,
   name,
   setName,
+  email,
+  bio,
+  setBio,
   hourlyRate,
   setHourlyRate,
   overtimeRate,
@@ -47,7 +54,10 @@ export function ProfileForm({
         <CardContent className="space-y-4">
           <PersonalDetails 
             name={name} 
-            setName={setName} 
+            setName={setName}
+            email={email}
+            bio={bio}
+            setBio={setBio}
           />
           
           <RateSettings 

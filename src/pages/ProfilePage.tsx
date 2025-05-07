@@ -15,6 +15,7 @@ export function ProfilePage() {
     isLoading,
     name,
     setName,
+    email,
     hourlyRate,
     setHourlyRate,
     overtimeRate,
@@ -25,6 +26,8 @@ export function ProfilePage() {
     setEnableLocationVerification,
     enableOvertimeCalculation,
     setEnableOvertimeCalculation,
+    bio,
+    setBio,
     saveSettings,
     userRole,
     isAdmin,
@@ -87,6 +90,9 @@ export function ProfilePage() {
         isLoading={isLoading || isSaving}
         name={name}
         setName={setName}
+        email={email}
+        bio={bio}
+        setBio={setBio}
         hourlyRate={hourlyRate}
         setHourlyRate={setHourlyRate}
         overtimeRate={overtimeRate}

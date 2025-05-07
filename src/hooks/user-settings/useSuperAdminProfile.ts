@@ -17,23 +17,21 @@ export function useSuperAdminProfile() {
       }
 
       // Call the Supabase edge function to update user metadata
-      const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/update-user-metadata`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+      const url = `${supabase.supabaseUrl}/functions/v1/update-user-metadata`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+        body: JSON.stringify({
+          user_id: user.user.id,
+          metadata: {
+            is_super_admin: true,
+            super_admin_since: new Date().toISOString(),
           },
-          body: JSON.stringify({
-            user_id: user.user.id,
-            metadata: {
-              is_super_admin: true,
-              super_admin_since: new Date().toISOString(),
-            },
-          }),
-        }
-      );
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();

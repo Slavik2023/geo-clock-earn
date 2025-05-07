@@ -10,6 +10,7 @@ export function useUserSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userSettingsId, setUserSettingsId] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   
   // Use the extracted hooks for specific functionalities
   const { 
@@ -31,7 +32,9 @@ export function useUserSettings() {
     enableLocationVerification,
     setEnableLocationVerification,
     enableOvertimeCalculation,
-    setEnableOvertimeCalculation
+    setEnableOvertimeCalculation,
+    bio,
+    setBio
   } = useUserProfile();
   
   // Load user settings from Supabase
@@ -52,6 +55,7 @@ export function useUserSettings() {
       }
       
       setUserId(userData.user.id);
+      setEmail(userData.user.email);
       
       const { data: settingsData, error } = await supabase
         .from('user_settings')
@@ -76,6 +80,7 @@ export function useUserSettings() {
         setOvertimeThreshold(settingsData.overtime_threshold || 8);
         setEnableLocationVerification(settingsData.enable_location_verification ?? true);
         setEnableOvertimeCalculation(settingsData.enable_overtime_calculation ?? true);
+        setBio(settingsData.bio || '');
         setUserSettingsId(settingsData.id);
         setUserRole(settingsData.role || 'user');
       }
@@ -106,6 +111,7 @@ export function useUserSettings() {
           overtime_threshold: overtimeThreshold,
           enable_location_verification: enableLocationVerification,
           enable_overtime_calculation: enableOvertimeCalculation,
+          bio,
           updated_at: new Date().toISOString()
         };
         
@@ -127,6 +133,7 @@ export function useUserSettings() {
           overtime_threshold: overtimeThreshold,
           enable_location_verification: enableLocationVerification,
           enable_overtime_calculation: enableOvertimeCalculation,
+          bio,
           updated_at: new Date().toISOString()
         };
         
@@ -159,6 +166,7 @@ export function useUserSettings() {
     isLoading,
     name,
     setName,
+    email,
     hourlyRate,
     setHourlyRate,
     overtimeRate,
@@ -169,6 +177,8 @@ export function useUserSettings() {
     setEnableLocationVerification,
     enableOvertimeCalculation,
     setEnableOvertimeCalculation,
+    bio,
+    setBio,
     saveSettings,
     userRole,
     isAdmin,
