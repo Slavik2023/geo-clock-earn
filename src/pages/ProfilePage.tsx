@@ -1,134 +1,96 @@
 
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { PersonalDetails } from "@/components/profile/PersonalDetails";
+import { RateSettings } from "@/components/profile/RateSettings";
+import { FeatureToggles } from "@/components/profile/FeatureToggles";
+import { TeamManagement } from "@/components/profile/TeamManagement";
 import { useUserSettings } from "@/hooks/useUserSettings";
-import { useSuperAdminProfile } from "@/hooks/user-settings/useSuperAdminProfile";
-import { ProfileForm } from "@/components/profile/ProfileForm";
-import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { useSuperAdminProfile } from "@/hooks/user-settings";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export function ProfilePage() {
-  const { toast } = useToast();
-  const [isSaving, setIsSaving] = useState(false);
-  
-  const {
-    isLoading,
-    name,
-    setName,
-    email,
-    hourlyRate,
-    setHourlyRate,
-    overtimeRate,
-    setOvertimeRate,
-    overtimeThreshold,
-    setOvertimeThreshold,
-    enableLocationVerification,
-    setEnableLocationVerification,
-    enableOvertimeCalculation,
-    setEnableOvertimeCalculation,
-    bio,
-    setBio,
-    saveSettings,
-    userRole,
-    isAdmin,
-    isSuperAdmin
-  } = useUserSettings();
-  
+  const { userRole, isSuperAdmin } = useUserSettings();
   const { createSuperAdminProfile, isUpdating } = useSuperAdminProfile();
-  
-  // Add a handler function that properly handles the button click event
-  const handleCreateSuperAdmin = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    await createSuperAdminProfile();
-  };
-  
-  // Add a handler to save profile settings with success/error feedback
-  const handleSaveSettings = async () => {
-    setIsSaving(true);
+  const [becomingSuperAdmin, setBecomingSuperAdmin] = useState(false);
+
+  const handleBecomeSuperAdmin = async () => {
+    setBecomingSuperAdmin(true);
     try {
-      await saveSettings();
-      toast({
-        title: "Profile updated",
-        description: "Your profile settings have been saved successfully."
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error saving profile",
-        description: "There was a problem saving your profile settings. Please try again."
-      });
+      const success = await createSuperAdminProfile();
+      if (success) {
+        toast.success("You are now a super admin! Please refresh the page to see all admin features.");
+      }
     } finally {
-      setIsSaving(false);
+      setBecomingSuperAdmin(false);
     }
   };
-  
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>My Profile</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground mb-4">
-            {userRole && (
-              <div className="flex items-center gap-2">
-                <span>Current Role:</span>
-                <span className="font-medium capitalize">{userRole}</span>
-                {isAdmin && (
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Admin</span>
-                )}
-                {isSuperAdmin && (
-                  <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">Super Admin</span>
-                )}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      
-      <ProfileForm 
-        isLoading={isLoading || isSaving}
-        name={name}
-        setName={setName}
-        email={email}
-        bio={bio}
-        setBio={setBio}
-        hourlyRate={hourlyRate}
-        setHourlyRate={setHourlyRate}
-        overtimeRate={overtimeRate}
-        setOvertimeRate={setOvertimeRate}
-        overtimeThreshold={overtimeThreshold}
-        setOvertimeThreshold={setOvertimeThreshold}
-        enableLocationVerification={enableLocationVerification}
-        setEnableLocationVerification={setEnableLocationVerification}
-        enableOvertimeCalculation={enableOvertimeCalculation}
-        setEnableOvertimeCalculation={setEnableOvertimeCalculation}
-        onSave={handleSaveSettings}
-      />
-      
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Advanced Options</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              variant="outline" 
-              className="w-full" 
-              onClick={handleCreateSuperAdmin}
-              disabled={isUpdating || isSuperAdmin}
-            >
-              {isUpdating ? "Processing..." : isSuperAdmin ? "You are a Super Admin" : "Become Super Admin"}
-            </Button>
-            
-            {isSuperAdmin && (
-              <p className="text-xs text-muted-foreground mt-2">
-                You already have Super Admin privileges.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+    <div className="container max-w-5xl py-6 space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Account Settings</h1>
+        <p className="text-muted-foreground">
+          Manage your account settings and preferences.
+        </p>
       </div>
+
+      {/* Super Admin Activation Section */}
+      {!isSuperAdmin && (
+        <Card className="p-4 mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-full">
+                <ShieldCheck className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Super Administrator Access</h3>
+                <p className="text-sm text-muted-foreground">
+                  Gain super admin privileges to manage all system functions
+                </p>
+              </div>
+            </div>
+            <Button 
+              onClick={handleBecomeSuperAdmin} 
+              disabled={becomingSuperAdmin || isUpdating}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {(becomingSuperAdmin || isUpdating) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Become Super Admin
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      <Tabs defaultValue="personal">
+        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+          <TabsTrigger value="personal">Personal</TabsTrigger>
+          <TabsTrigger value="rates">Rates</TabsTrigger>
+          <TabsTrigger value="features">Features</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="personal" className="mt-6">
+          <PersonalDetails />
+        </TabsContent>
+
+        <TabsContent value="rates" className="mt-6">
+          <RateSettings />
+        </TabsContent>
+
+        <TabsContent value="features" className="mt-6">
+          <FeatureToggles />
+        </TabsContent>
+
+        <TabsContent value="team" className="mt-6">
+          <TeamManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
