@@ -13,7 +13,26 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export function ProfilePage() {
-  const { userRole, isSuperAdmin } = useUserSettings();
+  const { 
+    userRole, 
+    isSuperAdmin,
+    name,
+    setName,
+    email,
+    hourlyRate,
+    setHourlyRate,
+    overtimeRate,
+    setOvertimeRate,
+    overtimeThreshold,
+    setOvertimeThreshold,
+    enableLocationVerification,
+    setEnableLocationVerification,
+    enableOvertimeCalculation,
+    setEnableOvertimeCalculation,
+    bio,
+    setBio
+  } = useUserSettings();
+  
   const { createSuperAdminProfile, isUpdating } = useSuperAdminProfile();
   const [becomingSuperAdmin, setBecomingSuperAdmin] = useState(false);
 
@@ -76,15 +95,33 @@ export function ProfilePage() {
         </TabsList>
 
         <TabsContent value="personal" className="mt-6">
-          <PersonalDetails />
+          <PersonalDetails 
+            name={name} 
+            setName={setName} 
+            email={email}
+            bio={bio}
+            setBio={setBio}
+          />
         </TabsContent>
 
         <TabsContent value="rates" className="mt-6">
-          <RateSettings />
+          <RateSettings 
+            hourlyRate={hourlyRate}
+            setHourlyRate={setHourlyRate}
+            overtimeRate={overtimeRate}
+            setOvertimeRate={setOvertimeRate}
+            overtimeThreshold={overtimeThreshold}
+            setOvertimeThreshold={setOvertimeThreshold}
+          />
         </TabsContent>
 
         <TabsContent value="features" className="mt-6">
-          <FeatureToggles />
+          <FeatureToggles 
+            enableLocationVerification={enableLocationVerification}
+            setEnableLocationVerification={setEnableLocationVerification}
+            enableOvertimeCalculation={enableOvertimeCalculation}
+            setEnableOvertimeCalculation={setEnableOvertimeCalculation}
+          />
         </TabsContent>
 
         <TabsContent value="team" className="mt-6">
