@@ -17,7 +17,7 @@ export function useSuperAdminProfile() {
       }
 
       // Call the Supabase edge function to update user metadata
-      const url = `${supabase.supabaseUrl}/functions/v1/update-user-metadata`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/update-user-metadata`;
       const response = await fetch(url, {
         method: "POST",
         headers: {

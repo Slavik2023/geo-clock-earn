@@ -80,7 +80,12 @@ export function useUserSettings() {
         setOvertimeThreshold(settingsData.overtime_threshold || 8);
         setEnableLocationVerification(settingsData.enable_location_verification ?? true);
         setEnableOvertimeCalculation(settingsData.enable_overtime_calculation ?? true);
-        setBio(settingsData.bio || '');
+        // Only set bio if it exists in the data
+        if ('bio' in settingsData) {
+          setBio(settingsData.bio || '');
+        } else {
+          setBio('');
+        }
         setUserSettingsId(settingsData.id);
         setUserRole(settingsData.role || 'user');
       }
