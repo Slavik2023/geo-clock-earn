@@ -10,6 +10,7 @@ import { ProfilePage } from "@/pages/ProfilePage";
 import { AuthPage } from "@/pages/auth";
 import { HomePage } from "@/pages/HomePage";
 import { DashboardPage } from "@/pages/dashboard";
+import { AdminPage } from "@/pages/AdminPage"; // Import the AdminPage
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { syncOfflineSessionsToServer } from "@/components/time-tracker/services/sessionService";
@@ -85,6 +86,7 @@ function App() {
               <Route path="/tracker" element={<TrackerPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/admin" element={<AdminPage />} />
             </Route>
           </Routes>
           <Toaster />
