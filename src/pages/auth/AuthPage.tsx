@@ -68,7 +68,7 @@ export function AuthPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AuthError error={error} onDismiss={() => setError(null)} />
+          {error && <AuthError error={error} onDismiss={() => setError(null)} />}
           
           {resetEmailSent ? (
             <div className="bg-green-50 p-4 rounded-md mb-4 text-center">
@@ -94,8 +94,10 @@ export function AuthPage() {
               
               <TabsContent value="login">
                 <LoginForm 
-                  onSuccess={() => navigate("/")} 
+                  onSwitchToRegister={() => setActiveTab("register")}
+                  onSwitchToReset={() => setActiveTab("reset")}
                   onError={setError}
+                  onSuccess={() => navigate("/")}
                   onResetPassword={() => setActiveTab("reset")}
                 />
                 <TestCredentials />
@@ -103,13 +105,15 @@ export function AuthPage() {
               
               <TabsContent value="register">
                 <RegisterForm 
-                  onSuccess={() => navigate("/")} 
+                  onSwitchToLogin={() => setActiveTab("login")}
                   onError={setError}
+                  onSuccess={() => navigate("/")}
                 />
               </TabsContent>
               
               <TabsContent value="reset">
                 <ResetPasswordForm 
+                  onSwitchToLogin={() => setActiveTab("login")}
                   onSuccess={() => setResetEmailSent(true)}
                   onError={setError}
                   onCancel={() => setActiveTab("login")}

@@ -31,9 +31,12 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 interface LoginFormProps {
   onSwitchToRegister: () => void;
   onSwitchToReset: () => void;
+  onSuccess?: () => void;
+  onError?: (error: string) => void;
+  onResetPassword?: () => void;
 }
 
-export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProps) {
+export function LoginForm({ onSwitchToRegister, onSwitchToReset, onSuccess, onError, onResetPassword }: LoginFormProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -59,10 +62,21 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
         title: "Login successful!",
         description: "Welcome back.",
       });
-      navigate("/");
+      
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate("/");
+      }
     } catch (error: any) {
       console.error("Login error:", error);
-      setAuthError(error.message || "An error occurred during login");
+      const errorMessage = error.message || "An error occurred during login";
+      setAuthError(errorMessage);
+      
+      if (onError) {
+        onError(errorMessage);
+      }
+      
       toast({
         variant: "destructive",
         title: "Login failed",
@@ -70,6 +84,14 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = () => {
+    if (onResetPassword) {
+      onResetPassword();
+    } else {
+      onSwitchToReset();
     }
   };
 
@@ -135,7 +157,7 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
       </Form>
 
       <div className="mt-4 text-center text-sm">
-        <Button variant="link" onClick={onSwitchToReset} className="px-2">
+        <Button variant="link" onClick={handleResetPassword} className="px-2">
           Forgot password?
         </Button>
         <span className="px-2">•</span>

@@ -26,9 +26,12 @@ type ResetFormValues = z.infer<typeof resetSchema>;
 
 interface ResetPasswordFormProps {
   onSwitchToLogin: () => void;
+  onSuccess?: () => void;
+  onError?: (error: string) => void;
+  onCancel?: () => void;
 }
 
-export function ResetPasswordForm({ onSwitchToLogin }: ResetPasswordFormProps) {
+export function ResetPasswordForm({ onSwitchToLogin, onSuccess, onError, onCancel }: ResetPasswordFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -50,13 +53,24 @@ export function ResetPasswordForm({ onSwitchToLogin }: ResetPasswordFormProps) {
     try {
       await resetPassword(data.email);
       setIsSuccess(true);
+      
+      if (onSuccess) {
+        onSuccess();
+      }
+      
       toast({
         title: "Password reset email sent",
         description: "Check your email for a password reset link",
       });
     } catch (error: any) {
       console.error("Password reset error:", error);
-      setAuthError(error.message || "An error occurred while sending reset email");
+      const errorMessage = error.message || "An error occurred while sending reset email";
+      setAuthError(errorMessage);
+      
+      if (onError) {
+        onError(errorMessage);
+      }
+      
       toast({
         variant: "destructive",
         title: "Password reset failed",
@@ -64,6 +78,14 @@ export function ResetPasswordForm({ onSwitchToLogin }: ResetPasswordFormProps) {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      onSwitchToLogin();
     }
   };
 
@@ -125,7 +147,7 @@ export function ResetPasswordForm({ onSwitchToLogin }: ResetPasswordFormProps) {
 
       {!isSuccess && (
         <div className="mt-4 text-center text-sm">
-          <Button variant="link" onClick={onSwitchToLogin} className="px-2">
+          <Button variant="link" onClick={handleCancel} className="px-2">
             Back to Login
           </Button>
         </div>

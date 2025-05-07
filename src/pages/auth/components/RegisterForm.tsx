@@ -38,9 +38,11 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
+  onSuccess?: () => void;
+  onError?: (error: string) => void;
 }
 
-export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
+export function RegisterForm({ onSwitchToLogin, onSuccess, onError }: RegisterFormProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -68,10 +70,21 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         title: "Registration successful!",
         description: "Please check your email to verify your account.",
       });
-      navigate("/");
+      
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate("/");
+      }
     } catch (error: any) {
       console.error("Registration error:", error);
-      setAuthError(error.message || "An error occurred during registration");
+      const errorMessage = error.message || "An error occurred during registration";
+      setAuthError(errorMessage);
+      
+      if (onError) {
+        onError(errorMessage);
+      }
+      
       toast({
         variant: "destructive",
         title: "Registration failed",

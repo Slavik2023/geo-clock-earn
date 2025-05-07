@@ -111,7 +111,7 @@ export function useUserSettings() {
           overtime_threshold: overtimeThreshold,
           enable_location_verification: enableLocationVerification,
           enable_overtime_calculation: enableOvertimeCalculation,
-          bio,
+          bio: bio,
           updated_at: new Date().toISOString()
         };
         
@@ -133,7 +133,7 @@ export function useUserSettings() {
           overtime_threshold: overtimeThreshold,
           enable_location_verification: enableLocationVerification,
           enable_overtime_calculation: enableOvertimeCalculation,
-          bio,
+          bio: bio,
           updated_at: new Date().toISOString()
         };
         

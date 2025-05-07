@@ -4,12 +4,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
 interface AuthErrorProps {
-  error: string | null;
-  onDismiss: () => void;
+  message?: string;
+  error?: string | null;
+  onDismiss?: () => void;
 }
 
-export function AuthError({ error, onDismiss }: AuthErrorProps) {
-  if (!error) return null;
+export function AuthError({ message, error, onDismiss }: AuthErrorProps) {
+  const errorMessage = message || error;
+  
+  if (!errorMessage) return null;
   
   return (
     <Alert variant="destructive" className="bg-red-100 border border-red-200">
@@ -18,17 +21,19 @@ export function AuthError({ error, onDismiss }: AuthErrorProps) {
           <AlertCircle size={20} className="mt-0.5" />
           <div className="flex flex-col">
             <div className="font-medium">Authentication Error</div>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{errorMessage}</AlertDescription>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={onDismiss}
-          className="text-red-500"
-        >
-          <X size={18} />
-        </Button>
+        {onDismiss && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onDismiss}
+            className="text-red-500"
+          >
+            <X size={18} />
+          </Button>
+        )}
       </div>
     </Alert>
   );
