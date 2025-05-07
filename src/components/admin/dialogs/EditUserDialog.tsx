@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { UserFormData, UserInfo } from "../types";
+import { useEffect } from "react";
 
 // Form schema
 const userFormSchema = z.object({
@@ -59,22 +60,28 @@ export function EditUserDialog({
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
-      name: userToEdit?.name || "",
-      role: userToEdit?.role || "user",
-      hourlyRate: userToEdit?.hourlyRate || 25,
-      isAdmin: userToEdit?.isAdmin || false,
+      name: "",
+      role: "user",
+      hourlyRate: 25,
+      isAdmin: false,
     },
   });
 
-  // Reset form when user changes
-  if (userToEdit && open) {
-    form.reset({
-      name: userToEdit.name || "",
-      role: userToEdit.role || "user",
-      hourlyRate: userToEdit.hourlyRate || 25,
-      isAdmin: userToEdit.isAdmin || false,
-    });
-  }
+  // Reset form when user changes - IMPORTANT: Only reset when userToEdit changes or dialog opens
+  useEffect(() => {
+    if (userToEdit && open) {
+      form.reset({
+        name: userToEdit.name || "",
+        role: userToEdit.role || "user",
+        hourlyRate: userToEdit.hourlyRate || 25,
+        isAdmin: userToEdit.isAdmin || false,
+      });
+    }
+  }, [userToEdit, open, form]);
+
+  const handleSubmit = async (data: UserFormData) => {
+    onSave(data);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,7 +93,7 @@ export function EditUserDialog({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -106,7 +113,7 @@ export function EditUserDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select role" />

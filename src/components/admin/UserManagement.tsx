@@ -12,10 +12,10 @@ export function UserManagement() {
     isLoading,
     fetchUsers,
     userToEdit,
-    showDeleteDialog,
-    setShowDeleteDialog,
     showEditDialog,
     setShowEditDialog,
+    showDeleteDialog,
+    setShowDeleteDialog,
     toggleAdminStatus,
     toggleBlockUser,
     confirmDeleteUser,
@@ -26,7 +26,7 @@ export function UserManagement() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   return (
     <div className="space-y-4">
