@@ -6,9 +6,10 @@ import { UserList } from "./UserList";
 import { DeleteUserDialog } from "./dialogs/DeleteUserDialog";
 import { EditUserDialog } from "./dialogs/EditUserDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, RefreshCw, UserPlus } from "lucide-react";
+import { AlertCircle, RefreshCw, Search, UserPlus } from "lucide-react";
 import { useAuth } from "@/App";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 export function UserManagement() {
   const { user } = useAuth();
@@ -31,6 +32,7 @@ export function UserManagement() {
 
   const [hasError, setHasError] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Reset error state on refresh
   const handleRefresh = () => {
@@ -64,6 +66,15 @@ export function UserManagement() {
     });
   }, [fetchUsers, user, lastRefresh]);
 
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      user.name?.toLowerCase().includes(searchLower) || 
+      user.email?.toLowerCase().includes(searchLower)
+    );
+  });
+
   // Log users data for debugging
   useEffect(() => {
     console.log("Current users data:", users);
@@ -89,6 +100,17 @@ export function UserManagement() {
         </div>
       </div>
 
+      {/* Search bar */}
+      <div className="flex items-center gap-2">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <Input 
+          placeholder="Поиск по имени или email..." 
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
       {isLoading ? (
         <div className="space-y-2">
           <Skeleton className="h-12 w-full" />
@@ -110,11 +132,16 @@ export function UserManagement() {
             Попробовать снова
           </Button>
         </div>
-      ) : users.length === 0 ? (
+      ) : filteredUsers.length === 0 ? (
         <div className="text-center py-8 border rounded-md">
-          <p className="text-muted-foreground">Пользователи не найдены</p>
+          <p className="text-muted-foreground">
+            {searchTerm ? "Пользователи по запросу не найдены" : "Пользователи не найдены"}
+          </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Это может быть связано с настройками разрешений или отсутствием пользователей в системе.
+            {searchTerm 
+              ? "Попробуйте изменить параметры поиска" 
+              : "Это может быть связано с настройками разрешений или отсутствием пользователей в системе."
+            }
           </p>
           <Button onClick={handleRefresh} variant="link" size="sm">
             Обновить
@@ -122,7 +149,7 @@ export function UserManagement() {
         </div>
       ) : (
         <UserList 
-          users={users}
+          users={filteredUsers}
           isLoading={isLoading}
           onEdit={openEditUserDialog}
           onToggleBlock={toggleBlockUser}
