@@ -8,6 +8,7 @@ import { TrackerPage } from "@/pages/TrackerPage";
 import { HistoryPage } from "@/pages/history";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { AuthPage } from "@/pages/auth";
+import { HomePage } from "@/pages/HomePage";
 import { DashboardPage } from "@/pages/dashboard";
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -79,7 +80,8 @@ function App() {
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<AppLayout />}>
-              <Route index element={<DashboardPage />} />
+              <Route index element={<HomePage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/tracker" element={<TrackerPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/profile" element={<ProfilePage />} />
