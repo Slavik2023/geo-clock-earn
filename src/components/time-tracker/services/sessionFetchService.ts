@@ -3,13 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { WorkSession } from "../WorkSessionCard";
 import { toast } from "sonner";
 import { getOfflineSessions } from "./sessionStorageService";
-import { useTimerErrorHandler } from "@/hooks/time-tracking/useTimerErrorHandler";
-
-// Create a singleton instance of the error handler
-const errorHandler = (() => {
-  const { handleSessionLoadError } = useTimerErrorHandler();
-  return { handleSessionLoadError };
-})();
 
 export async function fetchSessions(): Promise<WorkSession[]> {
   console.log("Fetching all sessions");
@@ -107,7 +100,8 @@ export async function fetchSessionsByDateRange(startDate: Date, endDate: Date): 
     }));
   } catch (error) {
     console.error("Error in fetchSessionsByDateRange:", error);
-    return errorHandler.handleSessionLoadError(error);
+    toast.error("Could not load sessions for date range. Using local data only.");
+    return getOfflineSessions(); // Return offline sessions as fallback
   }
 }
 
@@ -135,6 +129,6 @@ async function fetchSessionsByDateRangeWithoutJoins(startDate: Date, endDate: Da
     }));
   } catch (error) {
     console.error("Fatal error in fallback date range session fetch:", error);
-    return errorHandler.handleSessionLoadError(error);
+    return getOfflineSessions(); // Return offline sessions as fallback
   }
 }
