@@ -14,12 +14,12 @@ export function GeolocationHandler({ onLocationDetected }: GeolocationHandlerPro
   
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error("Геолокация не поддерживается вашим браузером");
+      toast.error("Geolocation is not supported by your browser");
       return;
     }
 
     setIsLocating(true);
-    toast.info("Получение точного местоположения...");
+    toast.info("Getting your precise location...");
     
     const geoOptions = {
       enableHighAccuracy: true,
@@ -35,23 +35,23 @@ export function GeolocationHandler({ onLocationDetected }: GeolocationHandlerPro
           accuracy: position.coords.accuracy
         };
         
-        console.log("Позиция получена с точностью:", pos.accuracy, "метров");
+        console.log("Position obtained with accuracy:", pos.accuracy, "meters");
         
         try {
-          // Используем OpenStreetMap's Nominatim API для обратного геокодирования
+          // Use OpenStreetMap's Nominatim API for reverse geocoding
           const addressDetails = await fetchAddressFromCoordinates(pos.lat, pos.lng);
-          console.log("Детали адреса:", addressDetails);
+          console.log("Address details:", addressDetails);
           
           if (addressDetails) {
-            toast.success(`Местоположение определено: ${addressDetails.address}`);
+            toast.success(`Location determined: ${addressDetails.address}`);
             onLocationDetected(addressDetails);
           }
         } catch (error) {
-          console.error("Ошибка получения адреса:", error);
+          console.error("Error getting address:", error);
           
-          // Запасной вариант - использовать координаты как адрес
-          const fallbackAddress = `Широта: ${pos.lat.toFixed(6)}, Долгота: ${pos.lng.toFixed(6)}`;
-          toast.warning("Не удалось получить адрес, используются координаты");
+          // Fallback to using coordinates as address
+          const fallbackAddress = `Latitude: ${pos.lat.toFixed(6)}, Longitude: ${pos.lng.toFixed(6)}`;
+          toast.warning("Couldn't get address, using coordinates");
           
           onLocationDetected({
             address: fallbackAddress,
@@ -64,22 +64,22 @@ export function GeolocationHandler({ onLocationDetected }: GeolocationHandlerPro
       },
       (error) => {
         setIsLocating(false);
-        let errorMessage = "Невозможно получить ваше местоположение.";
+        let errorMessage = "Unable to get your location.";
         
         switch(error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = "Доступ к местоположению запрещен. Пожалуйста, разрешите доступ к геолокации в настройках браузера.";
+            errorMessage = "Location access denied. Please allow location access in your browser settings.";
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = "Информация о местоположении недоступна.";
+            errorMessage = "Location information is unavailable.";
             break;
           case error.TIMEOUT:
-            errorMessage = "Истекло время ожидания запроса на определение местоположения.";
+            errorMessage = "The location request timed out.";
             break;
         }
         
-        console.error("Ошибка геолокации:", error.message);
-        toast.error(`Ошибка: ${errorMessage}`);
+        console.error("Geolocation error:", error.message);
+        toast.error(`Error: ${errorMessage}`);
       },
       geoOptions
     );
@@ -98,7 +98,7 @@ export function GeolocationHandler({ onLocationDetected }: GeolocationHandlerPro
       ) : (
         <Locate className="h-4 w-4 mr-2" />
       )}
-      {isLocating ? "Определение местоположения..." : "Обновить местоположение"}
+      {isLocating ? "Getting location..." : "Update Location"}
     </Button>
   );
 }
