@@ -5,13 +5,21 @@ import { createUserSettings } from "./userService";
 export async function loginWithEmail(email: string, password: string) {
   try {
     console.log("Attempting to login with:", email);
+    
+    // Make sure the email is lowercase to avoid case-sensitivity issues
+    const normalizedEmail = email.toLowerCase().trim();
+    
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: normalizedEmail,
       password,
     });
 
     if (error) {
       console.error("Login error:", error);
+      // Provide more user-friendly error messages based on the error code
+      if (error.message === "Invalid login credentials") {
+        throw new Error("Incorrect email or password. Please try again.");
+      }
       throw error;
     }
 
@@ -26,8 +34,12 @@ export async function loginWithEmail(email: string, password: string) {
 export async function registerWithEmail(email: string, password: string) {
   try {
     console.log("Attempting to signup with:", email);
+    
+    // Make sure the email is lowercase to avoid case-sensitivity issues
+    const normalizedEmail = email.toLowerCase().trim();
+    
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
     });
 
@@ -41,7 +53,7 @@ export async function registerWithEmail(email: string, password: string) {
       // Create user settings in the database
       return {
         user: data.user,
-        settingsCreated: await createUserSettings(data.user.id, email)
+        settingsCreated: await createUserSettings(data.user.id, normalizedEmail)
       };
     } else {
       throw new Error("Could not create user. Please try again.");
@@ -54,7 +66,9 @@ export async function registerWithEmail(email: string, password: string) {
 
 export async function resetPassword(email: string) {
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
       redirectTo: window.location.origin + "/auth",
     });
 

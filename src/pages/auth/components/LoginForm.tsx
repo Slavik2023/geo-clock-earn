@@ -80,7 +80,7 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset, onSuccess, onEr
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: "Please check your credentials and try again.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
