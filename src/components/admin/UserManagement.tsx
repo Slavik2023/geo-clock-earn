@@ -31,13 +31,11 @@ export function UserManagement() {
   } = useUserManagement();
 
   const [hasError, setHasError] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
   const [searchTerm, setSearchTerm] = useState("");
 
   // Reset error state on refresh
   const handleRefresh = () => {
     setHasError(false);
-    setLastRefresh(Date.now());
     console.log("Refreshing users data...");
     fetchUsers().catch(() => {
       setHasError(true);
@@ -45,26 +43,13 @@ export function UserManagement() {
     });
   };
 
-  // Set up auto-refresh every 30 seconds
-  useEffect(() => {
-    const autoRefreshInterval = setInterval(() => {
-      console.log("Auto-refreshing users data...");
-      fetchUsers().catch(e => {
-        console.log("Auto-refresh error:", e);
-        // Don't set hasError on auto-refresh to avoid UI disruption
-      });
-    }, 30000); // Every 30 seconds
-
-    return () => clearInterval(autoRefreshInterval);
-  }, [fetchUsers]);
-
   useEffect(() => {
     console.log("UserManagement component mounted, current user ID:", user?.id);
     fetchUsers().catch((e) => {
       console.error("Error in initial users fetch:", e);
       setHasError(true);
     });
-  }, [fetchUsers, user, lastRefresh]);
+  }, [fetchUsers, user]);
 
   // Filter users based on search term
   const filteredUsers = users.filter(user => {
