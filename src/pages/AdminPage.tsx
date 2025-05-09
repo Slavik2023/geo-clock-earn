@@ -17,6 +17,7 @@ import { UserManagement } from "@/components/admin/UserManagement";
 import { TeamManagement } from "@/components/admin/TeamManagement";
 import { SettingsManagement } from "@/components/admin/SettingsManagement";
 import { SuperAdminManagement } from "@/components/admin/SuperAdminManagement";
+import { UserRegistrationRecords } from "@/components/admin/UserRegistrationRecords";
 import { Navigate } from "react-router-dom";
 
 export function AdminPage() {
@@ -92,6 +93,7 @@ export function AdminPage() {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="registrations">Registrations</TabsTrigger>
         </TabsList>
         <TabsContent value="users" className="space-y-4">
           <UserManagement />
@@ -101,6 +103,9 @@ export function AdminPage() {
         </TabsContent>
         <TabsContent value="settings" className="space-y-4">
           <SettingsManagement />
+        </TabsContent>
+        <TabsContent value="registrations" className="space-y-4">
+          <UserRegistrationRecords />
         </TabsContent>
       </Tabs>
     </div>

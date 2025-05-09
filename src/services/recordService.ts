@@ -35,6 +35,27 @@ export async function fetchRecords() {
   }
 }
 
+export async function fetchUserRegistrationRecords() {
+  try {
+    const { data, error } = await supabase
+      .from('records')
+      .select('*')
+      .ilike('title', '%User Registration%')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching user registration records:", error);
+      toast.error("Failed to load user registration records");
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Unexpected error fetching registration records:", error);
+    throw error;
+  }
+}
+
 export async function createRecord(record: RecordInput) {
   try {
     // Get the current user's ID
