@@ -37,9 +37,18 @@ export async function fetchRecords() {
 
 export async function createRecord(record: RecordInput) {
   try {
+    // Get the current user's ID
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast.error("You must be logged in to create a record");
+      throw new Error("User is not authenticated");
+    }
+
+    // Insert the record with the user_id included
     const { data, error } = await supabase
       .from('records')
-      .insert(record)
+      .insert({ ...record, user_id: user.id })
       .select()
       .single();
 
