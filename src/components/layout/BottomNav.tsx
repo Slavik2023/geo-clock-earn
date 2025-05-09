@@ -1,93 +1,38 @@
 
-import { Link, useLocation } from "react-router-dom";
-import { Home, Clock, History, User, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/App";
+import { Link, useLocation } from 'react-router-dom';
+import { Home, Clock, History, UserCircle, Database } from 'lucide-react';
 
 export function BottomNav() {
   const location = useLocation();
-  const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
   
-  // Check if user is admin
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) return;
-      
-      try {
-        const { data } = await supabase
-          .from("user_settings")
-          .select("is_admin, role")
-          .eq("user_id", user.id)
-          .single();
-        
-        // User is admin if is_admin is true OR role is 'admin' or 'super_admin'
-        setIsAdmin(
-          data?.is_admin || 
-          data?.role === 'admin' || 
-          data?.role === 'super_admin'
-        );
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-      }
-    };
-    
-    checkAdminStatus();
-  }, [user]);
-  
-  const navItems = [
-    {
-      label: "Home",
-      path: "/",
-      icon: <Home className="h-5 w-5" />
-    },
-    {
-      label: "Tracker",
-      path: "/tracker",
-      icon: <Clock className="h-5 w-5" />
-    },
-    {
-      label: "History",
-      path: "/history",
-      icon: <History className="h-5 w-5" />
-    },
-    {
-      label: "Profile",
-      path: "/profile",
-      icon: <User className="h-5 w-5" />
-    }
-  ];
-  
-  // Add admin link if user is admin
-  if (isAdmin) {
-    navItems.push({
-      label: "Admin",
-      path: "/admin",
-      icon: <Settings className="h-5 w-5" />
-    });
-  }
+  const isActive = (path: string) => {
+    return location.pathname === path ? "text-primary" : "text-muted-foreground";
+  };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 border-t bg-background z-10">
-      <nav className="flex items-center justify-around">
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={cn(
-              "flex flex-1 flex-col items-center py-2 text-xs",
-              location.pathname === item.path
-                ? "text-primary"
-                : "text-muted-foreground"
-            )}
-          >
-            {item.icon}
-            <span className="mt-1">{item.label}</span>
-          </Link>
-        ))}
-      </nav>
+    <div className="md:hidden fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t border-border">
+      <div className="grid h-full grid-cols-5">
+        <Link to="/" className="flex flex-col items-center justify-center">
+          <Home className={`h-5 w-5 ${isActive('/')}`} />
+          <span className={`text-xs mt-1 ${isActive('/')}`}>Home</span>
+        </Link>
+        <Link to="/tracker" className="flex flex-col items-center justify-center">
+          <Clock className={`h-5 w-5 ${isActive('/tracker')}`} />
+          <span className={`text-xs mt-1 ${isActive('/tracker')}`}>Tracker</span>
+        </Link>
+        <Link to="/records" className="flex flex-col items-center justify-center">
+          <Database className={`h-5 w-5 ${isActive('/records')}`} />
+          <span className={`text-xs mt-1 ${isActive('/records')}`}>Records</span>
+        </Link>
+        <Link to="/history" className="flex flex-col items-center justify-center">
+          <History className={`h-5 w-5 ${isActive('/history')}`} />
+          <span className={`text-xs mt-1 ${isActive('/history')}`}>History</span>
+        </Link>
+        <Link to="/profile" className="flex flex-col items-center justify-center">
+          <UserCircle className={`h-5 w-5 ${isActive('/profile')}`} />
+          <span className={`text-xs mt-1 ${isActive('/profile')}`}>Profile</span>
+        </Link>
+      </div>
     </div>
   );
 }
