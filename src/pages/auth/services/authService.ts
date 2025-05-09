@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { createUserSettings } from "./userService";
+import { toast } from "sonner";
 
 export async function loginWithEmail(email: string, password: string) {
   try {
@@ -9,6 +10,9 @@ export async function loginWithEmail(email: string, password: string) {
     // Make sure the email is lowercase to avoid case-sensitivity issues
     const normalizedEmail = email.toLowerCase().trim();
     
+    // Log authentication attempt for debugging
+    console.log("Normalized email for login:", normalizedEmail);
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
       password,
@@ -16,11 +20,19 @@ export async function loginWithEmail(email: string, password: string) {
 
     if (error) {
       console.error("Login error:", error);
+      
       // Provide more user-friendly error messages based on the error code
       if (error.message === "Invalid login credentials") {
         throw new Error("Incorrect email or password. Please try again.");
+      } else if (error.message.includes("Email not confirmed")) {
+        throw new Error("Please verify your email before logging in.");
       }
       throw error;
+    }
+
+    if (!data.user || !data.session) {
+      console.error("Login successful but no user or session returned:", data);
+      throw new Error("Login failed. Please try again.");
     }
 
     console.log("Login successful:", data);
@@ -38,24 +50,49 @@ export async function registerWithEmail(email: string, password: string) {
     // Make sure the email is lowercase to avoid case-sensitivity issues
     const normalizedEmail = email.toLowerCase().trim();
     
+    // Log registration attempt for debugging
+    console.log("Normalized email for registration:", normalizedEmail);
+    
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
+      options: {
+        // Disable email confirmation for development
+        emailRedirectTo: window.location.origin + "/auth"
+      }
     });
 
     if (error) {
       console.error("Signup error:", error);
+      
+      if (error.message.includes("already registered")) {
+        throw new Error("This email is already registered. Please log in instead.");
+      }
+      
       throw error;
     }
     
     if (data.user) {
       console.log("Sign up successful, creating user settings");
+      
       // Create user settings in the database
-      return {
-        user: data.user,
-        settingsCreated: await createUserSettings(data.user.id, normalizedEmail)
-      };
+      try {
+        const settingsResult = await createUserSettings(data.user.id, normalizedEmail);
+        console.log("User settings creation result:", settingsResult);
+        
+        // Show confirmation toast 
+        toast.success("Account created successfully! You can now log in.");
+        
+        return {
+          user: data.user,
+          settingsCreated: settingsResult
+        };
+      } catch (settingsError) {
+        console.error("Error creating user settings:", settingsError);
+        throw new Error("Account created but profile setup failed. Please try logging in.");
+      }
     } else {
+      console.error("Signup returned no user:", data);
       throw new Error("Could not create user. Please try again.");
     }
   } catch (error) {

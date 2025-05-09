@@ -17,6 +17,9 @@ import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { AuthError } from "./AuthError";
+import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Define the login form schema
 const loginSchema = z.object({
@@ -37,10 +40,11 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSwitchToRegister, onSwitchToReset, onSuccess, onError, onResetPassword }: LoginFormProps) {
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   // Initialize the form
   const form = useForm<LoginFormValues>({
@@ -55,12 +59,20 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset, onSuccess, onEr
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     setAuthError(null);
+    setDebugInfo(null);
     
     try {
-      await loginWithEmail(data.email, data.password);
-      toast({
-        title: "Login successful!",
-        description: "Welcome back.",
+      console.log("Submitting login form with email:", data.email);
+      
+      const result = await loginWithEmail(data.email, data.password);
+      
+      // Show debug info in development
+      if (process.env.NODE_ENV === 'development') {
+        setDebugInfo(`Login successful. User: ${result?.user?.id}`);
+      }
+      
+      toast.success("Login successful!", {
+        description: "Welcome back."
       });
       
       if (onSuccess) {
@@ -73,14 +85,17 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset, onSuccess, onEr
       const errorMessage = error.message || "An error occurred during login";
       setAuthError(errorMessage);
       
+      // Show debug info in development
+      if (process.env.NODE_ENV === 'development') {
+        setDebugInfo(`Error details: ${JSON.stringify(error)}`);
+      }
+      
       if (onError) {
         onError(errorMessage);
       }
       
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: errorMessage,
+      toast.error("Login failed", {
+        description: errorMessage
       });
     } finally {
       setIsLoading(false);
@@ -105,6 +120,15 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset, onSuccess, onEr
       </div>
 
       {authError && <AuthError message={authError} />}
+      
+      {debugInfo && process.env.NODE_ENV === 'development' && (
+        <Alert className="bg-blue-50 border-blue-200 text-blue-800">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-xs font-mono">
+            {debugInfo}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -164,6 +188,14 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset, onSuccess, onEr
         <Button variant="link" onClick={onSwitchToRegister} className="px-2">
           Create an account
         </Button>
+      </div>
+      
+      {/* Test credentials notice */}
+      <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm border">
+        <p className="text-gray-600 font-medium">Test credentials:</p>
+        <p className="text-gray-500">Email: test@example.com</p>
+        <p className="text-gray-500">Password: password123</p>
+        <p className="text-xs text-gray-400 mt-1">You may need to register first</p>
       </div>
     </div>
   );

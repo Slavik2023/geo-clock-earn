@@ -18,6 +18,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { AuthError } from "./AuthError";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Define the registration form schema
 const registerSchema = z.object({
@@ -43,10 +46,12 @@ interface RegisterFormProps {
 }
 
 export function RegisterForm({ onSwitchToLogin, onSuccess, onError }: RegisterFormProps) {
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
 
   // Initialize the form
   const form = useForm<RegisterFormValues>({
@@ -63,32 +68,46 @@ export function RegisterForm({ onSwitchToLogin, onSuccess, onError }: RegisterFo
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
     setAuthError(null);
+    setDebugInfo(null);
     
     try {
-      await registerWithEmail(data.email, data.password);
-      toast({
-        title: "Registration successful!",
-        description: "Please check your email to verify your account.",
+      console.log("Submitting registration form with email:", data.email);
+      
+      const result = await registerWithEmail(data.email, data.password);
+      
+      // Show registration success information
+      setRegistrationComplete(true);
+      
+      // Show debug info in development
+      if (process.env.NODE_ENV === 'development') {
+        setDebugInfo(`Registration successful. User: ${result?.user?.id}`);
+      }
+      
+      toast.success("Registration successful!", {
+        description: "Your account has been created. You may now log in."
       });
       
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        navigate("/");
-      }
+      // Switch to login view after a short delay
+      setTimeout(() => {
+        onSwitchToLogin();
+      }, 2000);
+      
     } catch (error: any) {
       console.error("Registration error:", error);
       const errorMessage = error.message || "An error occurred during registration";
       setAuthError(errorMessage);
       
+      // Show debug info in development
+      if (process.env.NODE_ENV === 'development') {
+        setDebugInfo(`Error details: ${JSON.stringify(error)}`);
+      }
+      
       if (onError) {
         onError(errorMessage);
       }
       
-      toast({
-        variant: "destructive",
-        title: "Registration failed",
-        description: error.message || "An error occurred. Please try again.",
+      toast.error("Registration failed", {
+        description: errorMessage
       });
     } finally {
       setIsLoading(false);
@@ -105,6 +124,24 @@ export function RegisterForm({ onSwitchToLogin, onSuccess, onError }: RegisterFo
       </div>
 
       {authError && <AuthError message={authError} />}
+      
+      {registrationComplete && (
+        <Alert className="bg-green-50 border-green-200">
+          <AlertCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            Registration successful! You can now log in with your credentials.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {debugInfo && process.env.NODE_ENV === 'development' && (
+        <Alert className="bg-blue-50 border-blue-200 text-blue-800">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-xs font-mono">
+            {debugInfo}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -119,7 +156,7 @@ export function RegisterForm({ onSwitchToLogin, onSuccess, onError }: RegisterFo
                     placeholder="you@example.com" 
                     type="email" 
                     autoComplete="email"
-                    disabled={isLoading} 
+                    disabled={isLoading || registrationComplete} 
                     {...field} 
                   />
                 </FormControl>
@@ -138,7 +175,7 @@ export function RegisterForm({ onSwitchToLogin, onSuccess, onError }: RegisterFo
                     placeholder="********" 
                     type="password" 
                     autoComplete="new-password"
-                    disabled={isLoading} 
+                    disabled={isLoading || registrationComplete} 
                     {...field} 
                   />
                 </FormControl>
@@ -157,7 +194,7 @@ export function RegisterForm({ onSwitchToLogin, onSuccess, onError }: RegisterFo
                     placeholder="********" 
                     type="password" 
                     autoComplete="new-password"
-                    disabled={isLoading} 
+                    disabled={isLoading || registrationComplete} 
                     {...field} 
                   />
                 </FormControl>
@@ -174,7 +211,7 @@ export function RegisterForm({ onSwitchToLogin, onSuccess, onError }: RegisterFo
                   <Checkbox
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    disabled={isLoading}
+                    disabled={isLoading || registrationComplete}
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
@@ -189,9 +226,9 @@ export function RegisterForm({ onSwitchToLogin, onSuccess, onError }: RegisterFo
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading}
+            disabled={isLoading || registrationComplete}
           >
-            {isLoading ? "Creating account..." : "Create Account"}
+            {isLoading ? "Creating account..." : (registrationComplete ? "Account Created" : "Create Account")}
           </Button>
         </form>
       </Form>
