@@ -78,7 +78,10 @@ export async function registerWithEmail(email: string, password: string) {
       try {
         // Use Supabase Edge Function to create user settings
         // This avoids RLS issues since Edge Functions have admin privileges
-        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/init-user-settings`, {
+        const { origin } = new URL(window.location.href);
+        const functionUrl = `${origin}/functions/v1/init-user-settings`;
+        
+        const response = await fetch(functionUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

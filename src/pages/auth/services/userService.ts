@@ -49,11 +49,14 @@ export async function createUserSettings(userId: string, email: string) {
       console.error("Direct insert failed, will try edge function:", directInsertError);
       
       // If direct insert fails, try via edge function
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/init-user-settings`, {
+      const { origin } = new URL(window.location.href);
+      const functionUrl = `${origin}/functions/v1/init-user-settings`;
+      
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession().then(({ data }) => data.session?.access_token || '')}`
+          'Authorization': `Bearer ${await supabase.auth.getSession().then(({ data }) => data.session?.access_token || '')}`
         },
         body: JSON.stringify({
           userId,
