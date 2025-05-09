@@ -75,9 +75,22 @@ export async function registerWithEmail(email: string, password: string) {
     if (data.user) {
       console.log("Sign up successful, creating user settings");
       
-      // Create user settings in the database
       try {
-        const settingsResult = await createUserSettings(data.user.id, normalizedEmail);
+        // Use Supabase Edge Function to create user settings
+        // This avoids RLS issues since Edge Functions have admin privileges
+        const response = await fetch(`${supabase.supabaseUrl}/functions/v1/init-user-settings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.session?.access_token || ''}`
+          },
+          body: JSON.stringify({
+            userId: data.user.id,
+            email: normalizedEmail
+          })
+        });
+
+        const settingsResult = await response.json();
         console.log("User settings creation result:", settingsResult);
         
         // Show confirmation toast 
@@ -85,11 +98,16 @@ export async function registerWithEmail(email: string, password: string) {
         
         return {
           user: data.user,
-          settingsCreated: settingsResult
+          settingsCreated: true
         };
       } catch (settingsError) {
         console.error("Error creating user settings:", settingsError);
-        throw new Error("Account created but profile setup failed. Please try logging in.");
+        // Return success but flag that settings couldn't be created
+        toast.warning("Account created but profile setup failed. Please try logging in.");
+        return {
+          user: data.user,
+          settingsCreated: false
+        };
       }
     } else {
       console.error("Signup returned no user:", data);

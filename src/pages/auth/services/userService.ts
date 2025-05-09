@@ -22,28 +22,55 @@ export async function createUserSettings(userId: string, email: string) {
       return true;
     }
     
-    // Create new user settings
-    const { error: insertError } = await supabase
-      .from('user_settings')
-      .insert({
-        user_id: userId,
-        name: email.split('@')[0], // Use part of email as initial name
-        hourly_rate: 25,
-        overtime_rate: 37.5,
-        overtime_threshold: 8,
-        enable_location_verification: true,
-        enable_overtime_calculation: true,
-        role: 'user',
-        is_admin: false
+    // Try to create settings directly first (might fail due to RLS)
+    try {
+      const { error: insertError } = await supabase
+        .from('user_settings')
+        .insert({
+          user_id: userId,
+          name: email.split('@')[0], // Use part of email as initial name
+          hourly_rate: 25,
+          overtime_rate: 37.5,
+          overtime_threshold: 8,
+          enable_location_verification: true,
+          enable_overtime_calculation: true,
+          role: 'user',
+          is_admin: false
+        });
+      
+      if (insertError) {
+        console.error("Error creating user settings directly:", insertError);
+        throw insertError;
+      }
+      
+      console.log("User settings created successfully via direct insert");
+      return true;
+    } catch (directInsertError) {
+      console.error("Direct insert failed, will try edge function:", directInsertError);
+      
+      // If direct insert fails, try via edge function
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/init-user-settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.getSession().then(({ data }) => data.session?.access_token || '')}`
+        },
+        body: JSON.stringify({
+          userId,
+          email
+        })
       });
-    
-    if (insertError) {
-      console.error("Error creating user settings:", insertError);
-      throw insertError;
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Edge function failed:", errorData);
+        throw new Error(errorData.error || "Failed to create user settings via edge function");
+      }
+      
+      const result = await response.json();
+      console.log("User settings created via edge function:", result);
+      return true;
     }
-    
-    console.log("User settings created successfully");
-    return true;
   } catch (error) {
     console.error("Error creating user settings:", error);
     return false;

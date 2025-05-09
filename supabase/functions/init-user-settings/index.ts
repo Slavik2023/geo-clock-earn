@@ -14,7 +14,7 @@ serve(async (req) => {
   }
   
   try {
-    // Create a Supabase client with the Auth context
+    // Create a Supabase client with the Auth context of the function
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -30,6 +30,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("Edge function: Creating user settings for:", userId, email);
+
     // Check if user settings already exist
     const { data: existingSettings, error: checkError } = await supabaseClient
       .from('user_settings')
@@ -38,6 +40,7 @@ serve(async (req) => {
       .maybeSingle();
     
     if (checkError) {
+      console.error("Edge function: Error checking user settings:", checkError);
       return new Response(
         JSON.stringify({ error: checkError.message }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
@@ -46,6 +49,7 @@ serve(async (req) => {
     
     // If settings already exist, return them
     if (existingSettings) {
+      console.log("Edge function: User settings already exist");
       return new Response(
         JSON.stringify({ message: "User settings already exist", settings: existingSettings }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
@@ -70,17 +74,20 @@ serve(async (req) => {
       .single();
     
     if (insertError) {
+      console.error("Edge function: Error creating user settings:", insertError);
       return new Response(
         JSON.stringify({ error: insertError.message }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
 
+    console.log("Edge function: User settings created successfully");
     return new Response(
       JSON.stringify({ message: "User settings created successfully", settings: newSettings }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 201 }
     );
   } catch (error) {
+    console.error("Edge function: Unexpected error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
