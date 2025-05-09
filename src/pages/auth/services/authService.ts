@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createUserSettings } from "./userService";
 import { toast } from "sonner";
+import { createRecord } from "@/services/recordService"; // Import the record creation function
 
 export async function loginWithEmail(email: string, password: string) {
   try {
@@ -95,6 +96,19 @@ export async function registerWithEmail(email: string, password: string) {
 
         const settingsResult = await response.json();
         console.log("User settings creation result:", settingsResult);
+        
+        // Create a record for the new user registration
+        try {
+          await createRecord({
+            title: "New User Registration",
+            description: `User registered with email: ${normalizedEmail}`,
+            record_date: new Date().toISOString()
+          });
+          console.log("User registration record created");
+        } catch (recordError) {
+          console.error("Failed to create user registration record:", recordError);
+          // We don't throw here to avoid blocking registration if record creation fails
+        }
         
         // Show confirmation toast 
         toast.success("Account created successfully! You can now log in.");
