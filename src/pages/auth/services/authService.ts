@@ -44,7 +44,7 @@ export async function loginWithEmail(email: string, password: string) {
   }
 }
 
-export async function registerWithEmail(email: string, password: string) {
+export async function registerWithEmail(email: string, password: string, name?: string) {
   try {
     console.log("Attempting to signup with:", email);
     
@@ -54,13 +54,16 @@ export async function registerWithEmail(email: string, password: string) {
     // Log registration attempt for debugging
     console.log("Normalized email for registration:", normalizedEmail);
     
+    // Add metadata with name if provided
+    const options = {
+      data: name ? { name } : undefined,
+      emailRedirectTo: window.location.origin + "/auth"
+    };
+    
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
-      options: {
-        // Disable email confirmation for development
-        emailRedirectTo: window.location.origin + "/auth"
-      }
+      options
     });
 
     if (error) {
@@ -80,7 +83,7 @@ export async function registerWithEmail(email: string, password: string) {
         // Create a record for the new user registration
         await createRecord({
           title: "New User Registration",
-          description: `User registered with email: ${normalizedEmail}`,
+          description: `User registered with email: ${normalizedEmail}${name ? ` and name: ${name}` : ''}`,
           record_date: new Date().toISOString()
         });
         console.log("User registration record created");
@@ -98,9 +101,16 @@ export async function registerWithEmail(email: string, password: string) {
           },
           body: JSON.stringify({
             userId: data.user.id,
-            email: normalizedEmail
+            email: normalizedEmail,
+            name: name || normalizedEmail.split('@')[0]
           })
         });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Edge function error:", errorData);
+          throw new Error(`Failed to initialize user settings: ${errorData.error || 'Unknown error'}`);
+        }
 
         const settingsResult = await response.json();
         console.log("User settings creation result:", settingsResult);

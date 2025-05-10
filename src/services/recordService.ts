@@ -51,7 +51,7 @@ export async function fetchUserRegistrationRecords() {
     }
 
     console.log("Registration records retrieved:", data);
-    return data || [];
+    return data as Record[] || [];
   } catch (error) {
     console.error("Unexpected error fetching registration records:", error);
     throw error;
@@ -79,8 +79,7 @@ export async function createRecord(record: RecordInput) {
       }
 
       console.log("Record created successfully:", data);
-      toast.success("Record created successfully");
-      return data;
+      return data as Record;
     }
 
     // Insert the record with the user_id included
@@ -98,7 +97,7 @@ export async function createRecord(record: RecordInput) {
     }
 
     toast.success("Record created successfully");
-    return data;
+    return data as Record;
   } catch (error) {
     console.error("Unexpected error creating record:", error);
     throw error;
@@ -121,7 +120,7 @@ export async function updateRecord(id: string, record: Partial<RecordInput>) {
     }
 
     toast.success("Record updated successfully");
-    return data;
+    return data as Record;
   } catch (error) {
     console.error("Unexpected error updating record:", error);
     throw error;

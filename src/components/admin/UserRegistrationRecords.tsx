@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { format } from 'date-fns';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import { ConnectionErrorBanner } from '@/components/time-tracker/ConnectionErrorBanner';
 
 export function UserRegistrationRecords() {
@@ -60,7 +60,9 @@ export function UserRegistrationRecords() {
           </div>
         ) : records.length === 0 ? (
           <div className="text-center py-6 text-gray-500">
-            No user registration records found. New registrations will appear here.
+            <AlertCircle className="mx-auto h-8 w-8 mb-2 text-gray-400" />
+            <p>No user registration records found.</p>
+            <p className="text-sm text-gray-400 mt-1">New registrations will appear here.</p>
           </div>
         ) : (
           <Table>
