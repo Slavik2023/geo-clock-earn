@@ -77,6 +77,14 @@ export async function registerWithEmail(email: string, password: string) {
       console.log("Sign up successful, creating user settings");
       
       try {
+        // Create a record for the new user registration
+        await createRecord({
+          title: "New User Registration",
+          description: `User registered with email: ${normalizedEmail}`,
+          record_date: new Date().toISOString()
+        });
+        console.log("User registration record created");
+
         // Use Supabase Edge Function to create user settings
         // This avoids RLS issues since Edge Functions have admin privileges
         const { origin } = new URL(window.location.href);
@@ -96,19 +104,6 @@ export async function registerWithEmail(email: string, password: string) {
 
         const settingsResult = await response.json();
         console.log("User settings creation result:", settingsResult);
-        
-        // Create a record for the new user registration
-        try {
-          await createRecord({
-            title: "New User Registration",
-            description: `User registered with email: ${normalizedEmail}`,
-            record_date: new Date().toISOString()
-          });
-          console.log("User registration record created");
-        } catch (recordError) {
-          console.error("Failed to create user registration record:", recordError);
-          // We don't throw here to avoid blocking registration if record creation fails
-        }
         
         // Show confirmation toast 
         toast.success("Account created successfully! You can now log in.");

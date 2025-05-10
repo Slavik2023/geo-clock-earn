@@ -37,6 +37,7 @@ export async function fetchRecords() {
 
 export async function fetchUserRegistrationRecords() {
   try {
+    console.log("Fetching user registration records");
     const { data, error } = await supabase
       .from('records')
       .select('*')
@@ -49,6 +50,7 @@ export async function fetchUserRegistrationRecords() {
       throw error;
     }
 
+    console.log("Registration records retrieved:", data);
     return data || [];
   } catch (error) {
     console.error("Unexpected error fetching registration records:", error);
@@ -62,11 +64,27 @@ export async function createRecord(record: RecordInput) {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      toast.error("You must be logged in to create a record");
-      throw new Error("User is not authenticated");
+      console.log("Creating record as system user");
+      // Create the record with a system user ID for cases like registration records
+      const { data, error } = await supabase
+        .from('records')
+        .insert({ ...record, user_id: '00000000-0000-0000-0000-000000000000' })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error creating record:", error);
+        toast.error("Failed to create record");
+        throw error;
+      }
+
+      console.log("Record created successfully:", data);
+      toast.success("Record created successfully");
+      return data;
     }
 
     // Insert the record with the user_id included
+    console.log("Creating record for user:", user.id);
     const { data, error } = await supabase
       .from('records')
       .insert({ ...record, user_id: user.id })

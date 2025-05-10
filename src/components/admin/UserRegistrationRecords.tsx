@@ -15,13 +15,15 @@ export function UserRegistrationRecords() {
 
   const loadRegistrationRecords = async () => {
     try {
+      console.log("Loading registration records...");
       setLoading(true);
       setError(null);
       const data = await fetchUserRegistrationRecords();
+      console.log("Records loaded:", data);
       setRecords(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error loading registration records:", err);
-      setError("Failed to load registration records. Please try again.");
+      setError(err?.message || "Failed to load registration records. Please try again.");
     } finally {
       setLoading(false);
     }
