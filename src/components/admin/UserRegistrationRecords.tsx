@@ -10,14 +10,17 @@ import { RefreshCw } from 'lucide-react';
 export function UserRegistrationRecords() {
   const [records, setRecords] = useState<Record[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadRegistrationRecords = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await fetchUserRegistrationRecords();
       setRecords(data);
-    } catch (error) {
-      console.error("Error loading registration records:", error);
+    } catch (err) {
+      console.error("Error loading registration records:", err);
+      setError("Failed to load registration records. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -44,6 +47,18 @@ export function UserRegistrationRecords() {
       <CardContent>
         {loading ? (
           <div className="flex justify-center p-4">Loading registration records...</div>
+        ) : error ? (
+          <div className="text-center py-4 text-red-500">
+            {error}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={loadRegistrationRecords} 
+              className="ml-2"
+            >
+              Try Again
+            </Button>
+          </div>
         ) : records.length === 0 ? (
           <div className="text-center py-6 text-gray-500">
             No user registration records found. New registrations will appear here.

@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createUserSettings } from "./userService";
 import { toast } from "sonner";
-import { createRecord } from "@/services/recordService"; // Import the record creation function
+import { createRecord } from "@/services/recordService"; 
 
 export async function loginWithEmail(email: string, password: string) {
   try {
