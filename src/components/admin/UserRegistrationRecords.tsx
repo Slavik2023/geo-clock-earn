@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { format } from 'date-fns';
 import { RefreshCw } from 'lucide-react';
+import { ConnectionErrorBanner } from '@/components/time-tracker/ConnectionErrorBanner';
 
 export function UserRegistrationRecords() {
   const [records, setRecords] = useState<Record[]>([]);
@@ -48,16 +49,12 @@ export function UserRegistrationRecords() {
         {loading ? (
           <div className="flex justify-center p-4">Loading registration records...</div>
         ) : error ? (
-          <div className="text-center py-4 text-red-500">
-            {error}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={loadRegistrationRecords} 
-              className="ml-2"
-            >
-              Try Again
-            </Button>
+          <div className="text-center py-4">
+            <ConnectionErrorBanner 
+              message={error} 
+              onRetry={loadRegistrationRecords} 
+              variant="error"
+            />
           </div>
         ) : records.length === 0 ? (
           <div className="text-center py-6 text-gray-500">
